@@ -1,4 +1,4 @@
-// Anonymous, opt-in run summaries. No player identifier persists across runs.
+// Anonymous run summaries with a persistent off switch. No player identifier persists across runs.
 (() => {
   'use strict';
   const qa=new URLSearchParams(location.search).get('qa')==='1';
@@ -8,8 +8,8 @@
   const ua=navigator.userAgent;
   const platform=/Android/i.test(ua)?'android':/iPhone|iPad|iPod/i.test(ua)||navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1?'ios':/Mobile/i.test(ua)?'mobile':'desktop';
   const memory=new Map();
-  let choice=null,run=null,game=null,sending=false,timer=0,activeMs=0,nextSave=15000,skipFrame=true;
-  try{choice=localStorage.getItem(pref);}catch{}
+  let choice='yes',run=null,game=null,sending=false,timer=0,activeMs=0,nextSave=15000,skipFrame=true;
+  try{if(localStorage.getItem(pref)==='no')choice='no';}catch{}
   function records(){
     const result=new Map(memory);
     try{for(const k of Object.keys(localStorage)){
@@ -73,7 +73,7 @@
   function finish(mult){if(run){run.mult=mult;save('won');}}
   function action(kind,item){if(choice==='yes'&&crypto.randomUUID)enqueue({type:'action',id:crypto.randomUUID(),platform,build:'p1',rev:1,kind,item});}
   window.addEventListener('online',flush);
-  window.addEventListener('storage',e=>{if(e.key===pref&&e.newValue!==choice)change(e.newValue==='yes',false);});
+  window.addEventListener('storage',e=>{if(e.key===pref||e.key===null)change(e.newValue!=='no',false);});
   document.addEventListener('visibilitychange',()=>{if(document.hidden){pause();flush();}});
   window.addEventListener('pagehide',()=>{pause();flush();});
   if(choice==='yes')schedule(1000);

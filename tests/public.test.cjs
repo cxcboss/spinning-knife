@@ -19,3 +19,24 @@ test('仅提供一次有效复活，其余广告无奖励，离开弹窗不会�
  assert(results.includes(true));assert.equal(grants,1);assert.equal(await a.grantReward('revive',good,()=>grants++),false);
  const late=a.grantReward('revive',()=>true,()=>grants++);a.UI.view++;assert.equal(await late,false);assert.equal(grants,1);
 });
+
+test('新试玩默认统计，关闭后记住选择并停止收集',()=>{
+ const client=fs.readFileSync(path.join(__dirname,'..','playtest.js'),'utf8');
+ const storage={},timers=new Set();
+ Object.defineProperties(storage,{
+   getItem:{value:k=>storage[k]??null},setItem:{value:(k,v)=>storage[k]=v},removeItem:{value:k=>delete storage[k]}
+ });
+ const prefs=()=>{
+   const window={addEventListener(){}};
+   vm.runInNewContext(client,{window,navigator:{userAgent:'Android'},document:{addEventListener(){}},
+     location:new URL('https://cxcboss.github.io/spinning-knife/?qa=1'),URLSearchParams,localStorage:storage,
+     crypto:require('node:crypto').webcrypto,setTimeout:fn=>{timers.add(fn);return fn;},clearTimeout:fn=>timers.delete(fn)});
+   return window.KnifeStats;
+ };
+ const game={idx:0,skin:'chef',hops:0,cut:0,progress:0,coins:0};
+ const rows=()=>Object.keys(storage).filter(k=>k.startsWith('spinning-knife.stats.p1.qa.out.'));
+ let stats=prefs();assert.equal(stats.choice,'yes');stats.start(game,'play');assert.equal(rows().length,1);
+ stats.change(false);assert.equal(rows().length,0);
+ stats=prefs();assert.equal(stats.choice,'no');stats.start(game,'play');stats.action('equip','chef');assert.equal(rows().length,0);
+ stats.change(true);stats=prefs();stats.start(game,'play');assert.equal(rows().length,1);
+});

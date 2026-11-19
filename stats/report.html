@@ -33,7 +33,7 @@ async function load(){
  table('流畅度',['设备','有采样的局数','平均帧率','超过 33 毫秒的帧'],performance.map(x=>[label(x.platform),x.n,x.fps,x.slow+'%']));
  table('装备与补给',['操作','物品 / 广告位置','次数'],actions.map(x=>[label(x.kind),label(x.item),x.n]));
  table('出战武器',['武器','使用局数','每局平均切割'],equipment.map(x=>[label(x.gear),x.n,x.cuts]));
- const note=document.createElement('p');note.textContent='¹ 复活率以发生首次失败的局为分母。每次重新开局单独计数。仅汇总选择参与的试玩，首页演示和后台停留不计入游玩时长。统计按开局时间归档。² 离开时进度包括主动离开和暂时切后台，回到同一局后更新。复查建议从每关 20 局、每类设备 10 局或 10 次余额不足起显示。';document.querySelector('main').append(note);
+ const note=document.createElement('p');note.textContent='¹ 复活率以发生首次失败的局为分母。每次重新开局单独计数。仅汇总开启匿名统计的试玩，首页演示和后台停留不计入游玩时长。统计按开局时间归档。² 离开时进度包括主动离开和暂时切后台，回到同一局后更新。复查建议从每关 20 局、每类设备 10 局或 10 次余额不足起显示。';document.querySelector('main').append(note);
  }catch(e){el('hero').textContent=e.message;}
 }
 el('login').onsubmit=e=>{e.preventDefault();token=el('key').value;el('key').value='';sessionStorage.setItem('reportKey',token);load();};el('refresh').onclick=el('days').onchange=el('device').onchange=load;load();
