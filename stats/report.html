@@ -10,6 +10,10 @@ const el=id=>document.getElementById(id);
 let token=location.hash.slice(1);history.replaceState(null,'',location.pathname+location.search);
 if(token)sessionStorage.setItem('reportKey',token);else token=sessionStorage.getItem('reportKey');
 const labels={android:'Android',ios:'iOS / iPadOS',desktop:'桌面',mobile:'其他移动设备',slip:'滑落',spike:'尖刺',void:'落空',other:'其他',buy:'金币购买',short:'金币不足',daily:'签到',power:'使用库存道具',ad_off:'点击未开放的广告奖励',revive:'广告复活',supply:'补给',run:'局内道具',double:'结算翻倍',chef:'小刀',cleaver:'大刀',santoku:'水果刀',bread:'面包刀',katana:'银月刀',ice:'寒冰刀',willow:'柳叶刀',gold:'烈焰刀',neon:'闪电刀',comet:'流星刀',rainbow:'彩虹刀',obsidian:'黑龙刀',carrot:'萝卜刀',popsicle:'冰棒刀',banana:'香蕉刀',fish:'小鱼刀',watermelon:'西瓜刀',rocket:'火箭刀',star:'星星刀',steady:'稳刃石',feather:'风羽',gild:'聚金币',goldrush:'金币雨',triple:'三段跳',rain:'万剑归宗',revival:'复活药水'};
+Object.assign(labels,{claim_trophy:'领取成就',challenge_start:'开始每日挑战',challenge_win:'每日挑战成功',challenge_fail:'每日挑战失败',
+  share_result:'系统分享战绩',copy_result:'复制战绩',wheel_spin:'转盘抽奖',coins:'金币',fruit:'水果连切',precision:'金靶落点',air:'空中拦截',sprint:'限时冲刺',
+  achievement:'成就','free-spin':'每日免费','coin-spin':'金币抽奖',citrus:'橘刃',glass:'琉璃刀',bubble:'泡泡刀',kite:'风筝刀',dawn:'晨曦刀',
+  aurora:'极光刀',thousand:'魔刀千刃','gilded-wheel':'星轮刀','azure-dragon':'苍龙刀'});
 const label=v=>labels[v]||v,percent=(n,d)=>d?(100*n/d).toFixed(0)+'%':'—';
 function table(title,head,rows){
  const section=document.createElement('section'),h=document.createElement('h2');h.textContent=title;section.append(h);
@@ -33,7 +37,7 @@ async function load(){
  table('优先复查',['范围','观察','下一步'],focus);
  table('失败位置',['关卡','最后落稳的柱子','死因','次数'],failures.map(x=>[x.level,x.pad===0?'起点':x.pad,label(x.reason),x.n]));
  table('流畅度',['设备','有采样的局数','平均帧率','超过 33 毫秒的帧'],performance.map(x=>[label(x.platform),x.n,x.fps,x.slow+'%']));
- table('装备与补给',['操作','物品 / 广告位置','次数'],actions.map(x=>[label(x.kind),label(x.item),x.n]));
+ table('玩法与道具',['操作','内容','次数'],actions.map(x=>[label(x.kind),label(x.item),x.n]));
  table('出战武器',['武器','使用局数','每局平均切割'],equipment.map(x=>[label(x.gear),x.n,x.cuts]));
  const note=document.createElement('p');note.textContent='¹ 广告复活率以至少失败过一次的局为分母。每次重新开局单独计数。仅汇总开启匿名统计的试玩，首页演示和后台停留不计入游玩时长。统计按开局时间归档。² 离开时进度包括主动离开和暂时切后台，回到同一局后更新。复查建议从每关 20 局、每类设备 10 局或 10 次余额不足起显示。';document.querySelector('main').append(note);
  }catch(e){el('hero').textContent=e.message;}

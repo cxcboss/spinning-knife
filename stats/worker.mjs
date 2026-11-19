@@ -9,8 +9,9 @@ const enums = {
   state: ['playing','away','left','failed','won'],
   entry: ['play','retry','next','choose','gear','endless'],
   reason: ['none','slip','spike','void','other'],
-  kind: ['buy','short','daily','power','ad_off','revive'],
-  gear: ['chef','santoku','cleaver','bread','katana','ice','gold','rainbow','obsidian','neon','comet','willow','carrot','popsicle','banana','fish','watermelon','rocket','star'],
+  kind: ['buy','short','daily','power','ad_off','revive','claim_trophy','challenge_start','challenge_win','challenge_fail','share_result','copy_result','wheel_spin'],
+  gear: ['chef','santoku','cleaver','bread','katana','ice','gold','rainbow','obsidian','neon','comet','willow','carrot','popsicle','banana','fish','watermelon','rocket','star',
+    'citrus','glass','bubble','kite','dawn','aurora','thousand','gilded-wheel','azure-dragon'],
   supply: ['steady','feather','gild','goldrush','triple','rain','revival']
 };
 const integer = (v,max) => Number.isInteger(v) && v>=0 && v<=max;
@@ -19,7 +20,8 @@ function clean(e) {
   if(!e || typeof e!=='object'||!/^([a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12})$/.test(e.id)||!integer(e.rev,100000)||!e.rev||!inside(e.platform,enums.platform)||!inside(e.build,enums.build))return null;
   const base={id:e.id,rev:e.rev,platform:e.platform,build:e.build,type:e.type},updated=e.build==='p2';
   if(e.type==='action'){
-    const items=[...enums.gear,...enums.supply,'daily','double','revive','supply','run'];
+    const items=[...enums.gear,...enums.supply,'daily','double','revive','supply','run',
+      'coins','fruit','precision','air','sprint','achievement','free-spin','coin-spin'];
     return inside(e.kind,enums.kind)&&inside(e.item,items)?{...base,kind:e.kind,item:e.item}:null;
   }
   if(e.type!=='run'||!inside(e.state,enums.state)||!inside(e.entry,enums.entry)||!inside(e.gear,enums.gear)||!inside(e.reason,enums.reason)||!inside(e.reason2,enums.reason))return null;
