@@ -52,7 +52,7 @@ export class PlaytestStore extends DurableObject {
     const start=Date.now()-days*day;
     const group=(sql,params=[])=>this.db.exec(`WITH data AS (SELECT body FROM samples WHERE created>=? AND (?='all' OR body->>'platform'=?)) ${sql}`,start,device,device,...params).toArray();
     const runs="FROM data WHERE body->>'type'='run'";
-    const counts=`count(*) AS starts, sum((body->>'state')='won') AS wins,sum((body->>'deaths')>0) AS firstFails,sum(body->>'revived') AS revives,sum((body->>'revived')=1 AND (body->>'state')='won') AS rescued,sum((body->>'entry') IN ('retry','gear')) AS retries,round(avg(body->>'seconds')) AS seconds,round(avg(CASE WHEN (body->>'state') IN ('left','away') THEN body->>'progress' END)) AS exitProgress,round(avg(CASE WHEN (body->>'state')='won' THEN body->>'coins' END)) AS income`;
+    const counts=`count(*) AS starts,sum((body->>'hops')>0) AS launched, sum((body->>'state')='won') AS wins,sum((body->>'deaths')>0) AS firstFails,sum(body->>'revived') AS revives,sum((body->>'revived')=1 AND (body->>'state')='won') AS rescued,sum((body->>'entry') IN ('retry','gear')) AS retries,round(avg(body->>'seconds')) AS seconds,round(avg(CASE WHEN (body->>'state') IN ('left','away') THEN body->>'progress' END)) AS exitProgress,round(avg(CASE WHEN (body->>'state')='won' THEN body->>'coins' END)) AS income`;
     const levels=group(`SELECT body->>'level' level,${counts} ${runs} GROUP BY level ORDER BY level`);
     const failures=group(`SELECT level,pad,reason,count(*) AS n FROM (
       SELECT body->>'level' level,body->>'pad' pad,body->>'reason' reason ${runs} AND body->>'deaths'>0 UNION ALL

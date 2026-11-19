@@ -23,7 +23,7 @@ async function load(){
  const r=await fetch(u,{headers:{Authorization:'Bearer '+token}});if(r.status===401){el('login').hidden=false;throw Error('请输入有效口令');}if(!r.ok)throw Error('暂时无法读取报表');
  const {levels,failures,performance,actions,equipment}=await r.json();el('login').hidden=true;document.querySelector('main').replaceChildren();
  const sum=k=>levels.reduce((n,x)=>n+x[k],0);el('hero').textContent=(u.searchParams.has('qa')?'验收数据 · ':'')+sum('starts')+' 局试玩　'+sum('wins')+' 局通关　'+sum('revives')+' 次复活';
- table('关卡表现',['关卡','开局','通关率','首次失败','复活率¹','复活后通关','主动重试','平均游玩','离开时进度²','通关金币'],levels.map(x=>[x.level,x.starts,percent(x.wins,x.starts),x.firstFails,percent(x.revives,x.firstFails),percent(x.rescued,x.revives),x.retries,x.seconds+' 秒',x.exitProgress===null?'—':x.exitProgress+'%',x.income??'—']));
+ table('关卡表现',['关卡','开局','首次出刀率','通关率','首次失败','复活率¹','复活后通关','主动重试','平均游玩','离开时进度²','通关金币'],levels.map(x=>[x.level,x.starts,percent(x.launched,x.starts),percent(x.wins,x.starts),x.firstFails,percent(x.revives,x.firstFails),percent(x.rescued,x.revives),x.retries,x.seconds+' 秒',x.exitProgress===null?'—':x.exitProgress+'%',x.income??'—']));
  const focus=[];
  for(const x of levels){if(x.starts>=20&&x.wins/x.starts<.35){const f=failures.find(v=>v.level===x.level);focus.push(['第 '+x.level+' 关',percent(x.wins,x.starts)+' 通关',f?'优先复查第 '+f.pad+' 根柱子后的'+label(f.reason)+'，调整后用同口径重测':'检查离开进度及关卡引导']);}}
  for(const x of performance)if(x.n>=10&&x.slow>=5)focus.push([label(x.platform),x.slow+'% 长帧','在该类设备重测连续切割和碎片落地']);
