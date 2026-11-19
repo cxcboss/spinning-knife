@@ -8,7 +8,7 @@ function game(store=new Map()){
   const api=vm.runInNewContext(code+`
     GFX.batch=()=>({addMesh(){},flat(){},clear(){},dispose(){}});
     ({SAVE,SAVE_KEY,saveLoad,saveWrite,calendarDay,recordPlayDay,clearedCourses,
-      claimAchievement,drawWheelPrize,dailyChallengeFor,generateDailyCourse,settleDailyChallenge,
+      claimAchievement,drawWheelPrize,dailyChallengeFor,generateDailyCourse,beginDailyAttempt,dailyRecord,settleDailyChallenge,
       botRun,botTick,Game,G,dailyRunScore,KNIFE_BY_ID,KNIVES,canEquip,act,UI,SC,drawKnifeForm})
   `,{window:{},localStorage:{getItem:k=>store.get(k),setItem:(k,v)=>store.set(k,v)},URLSearchParams});
   return {...api,store};
@@ -43,7 +43,7 @@ test('旧关卡进度可领奖，限定刀只可由成就领取且不能重复�
   assert(restored.canEquip('thousand'));
 });
 
-test('同日赛道固定，四种每日挑战都有可通关路线，失败与通关奖励按日补差',()=>{
+test('四种每日挑战可通关，每天只开一局，失败或成功后都不能再领奖',()=>{
   const a=game(),today=a.calendarDay(),seen=new Set();
   for(let offset=0;offset<8;offset++){
     const spec=a.dailyChallengeFor(today+offset),level=a.generateDailyCourse(spec);
@@ -62,14 +62,25 @@ test('同日赛道固定，四种每日挑战都有可通关路线，失败与�
   }
   assert.equal(seen.size,4);
   const spec=a.dailyChallengeFor(today),miss={score:0,won:false};
+  assert(a.beginDailyAttempt(spec));
+  assert(!a.beginDailyAttempt(spec));
+  const active=game(a.store);active.saveLoad();
+  assert(!active.beginDailyAttempt(spec),'刷新后当天开局额度仍已消费');
   assert.equal(a.settleDailyChallenge(spec,miss).earned,35);
   assert.equal(a.settleDailyChallenge(spec,miss).earned,0);
-  assert.equal(a.settleDailyChallenge(spec,{score:spec.goal,won:true}).earned,spec.reward-35);
-  assert.equal(a.settleDailyChallenge(spec,{score:spec.goal,won:true}).earned,0);
+  assert(!a.beginDailyAttempt(spec));
   const b=game(a.store);b.saveLoad();
-  assert.equal(b.SAVE.coins,spec.reward);
+  assert.equal(b.SAVE.coins,35);
+  const tomorrow=b.dailyChallengeFor(today+1);
+  assert(b.beginDailyAttempt(tomorrow));
+  assert.equal(b.settleDailyChallenge(tomorrow,{score:tomorrow.goal,won:true}).earned,tomorrow.reward);
+  assert(!b.beginDailyAttempt(tomorrow));
+  assert.equal(b.settleDailyChallenge(tomorrow,miss).earned,0);
   assert.equal(b.SAVE.progression.challengeWins,1);
-  assert.equal(b.settleDailyChallenge(b.dailyChallengeFor(today+1),miss).earned,35);
+  const legacy=game();
+  legacy.store.set(legacy.SAVE_KEY,JSON.stringify({progression:{challenges:{[today]:{paid:35,best:3,won:false}}}}));
+  legacy.saveLoad();
+  assert(!legacy.beginDailyAttempt(spec),'旧版今天领过参与奖则同样计入');
 });
 
 test('转盘每天一抽免费，付费同步结算，稀有刀只在实际游玩三天及十关后出现',()=>{

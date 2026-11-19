@@ -8,7 +8,7 @@
   const build='p2',ua=navigator.userAgent;
   const platform=/Android/i.test(ua)?'android':/iPhone|iPad|iPod/i.test(ua)||navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1?'ios':/Mobile/i.test(ua)?'mobile':'desktop';
   const memory=new Map();
-  let choice='yes',run=null,game=null,sending=false,timer=0,activeMs=0,nextSave=15000,skipFrame=true;
+  let choice='yes',trial=false,run=null,game=null,sending=false,timer=0,activeMs=0,nextSave=15000,skipFrame=true;
   try{if(localStorage.getItem(pref)==='no')choice='no';}catch{}
   function records(){
     const result=new Map(memory);
@@ -56,7 +56,7 @@
   }
   function close(){if(!run)return;if(!['failed','won'].includes(run.state))save('left');run=game=null;}
   function start(g,entry){
-    close();if(choice!=='yes'||!crypto.randomUUID)return;
+    close();if(trial||choice!=='yes'||!crypto.randomUUID)return;
     game=g;activeMs=0;nextSave=15000;skipFrame=true;
     run={id:crypto.randomUUID(),type:'run',rev:0,platform,build,entry,gear:g.skin,level:g.endless?0:g.idx+1,deaths:0,revived:0,
       itemRevived:0,settled:0,pad:0,pad2:0,pad3:0,reason:'none',reason2:'none',reason3:'none',mult:0,frames:0,frameMs:0,slow:0};
@@ -84,11 +84,12 @@
   }
   function finish(mult){if(run){run.mult=mult;save('won');}}
   function endlessFinish(){if(run&&run.level===0){run.settled=1;save('failed');}}
-  function action(kind,item){if(choice==='yes'&&crypto.randomUUID)enqueue({type:'action',id:crypto.randomUUID(),platform,build,rev:1,kind,item});}
+  function action(kind,item){if(!trial&&choice==='yes'&&crypto.randomUUID)enqueue({type:'action',id:crypto.randomUUID(),platform,build,rev:1,kind,item});}
+  function setTrial(active){if(active)close();trial=active;}
   window.addEventListener('online',flush);
   window.addEventListener('storage',e=>{if(e.key===pref||e.key===null)change(e.newValue!=='no',false);});
   document.addEventListener('visibilitychange',()=>{if(document.hidden){pause();flush();}});
   window.addEventListener('pagehide',()=>{pause();flush();});
   if(choice==='yes')schedule(1000);
-  window.KnifeStats={get choice(){return choice;},change,start,close,tick,pause,resume,death,revive,finish,endlessFinish,action};
+  window.KnifeStats={get choice(){return choice;},change,start,close,tick,pause,resume,death,revive,finish,endlessFinish,action,setTrial};
 })();
