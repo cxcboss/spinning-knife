@@ -5,7 +5,7 @@
   if(location.origin!=='https://cxcboss.github.io'||!location.pathname.startsWith('/spinning-knife/'))return;
   const endpoint='https://spinning-knife-stats.1967994768.workers.dev/collect'+(qa?'?qa=1':'');
   const prefix='spinning-knife.stats.p1.'+(qa?'qa.':'live.'),pref=prefix+'consent',out=prefix+'out.';
-  const ua=navigator.userAgent;
+  const build='p2',ua=navigator.userAgent;
   const platform=/Android/i.test(ua)?'android':/iPhone|iPad|iPod/i.test(ua)||navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1?'ios':/Mobile/i.test(ua)?'mobile':'desktop';
   const memory=new Map();
   let choice='yes',run=null,game=null,sending=false,timer=0,activeMs=0,nextSave=15000,skipFrame=true;
@@ -44,17 +44,22 @@
     choice=yes?'yes':'no';if(persist)try{localStorage.setItem(pref,choice);}catch{}
     if(!yes){run=game=null;clearTimeout(timer);timer=0;for(const [k,v] of records())remove(k,v.data.rev);}
   }
+  const distance=n=>Math.min(1000000,n||0);
   function save(state){
     if(!run||!game)return;
     run.state=state;run.rev++;run.seconds=Math.min(86400,Math.round(activeMs/1000));
-    Object.assign(run,{hops:game.hops,cuts:game.cut,progress:game.fin?100:Math.round(game.progress*100),coins:game.res?.total??game.coins});
+    Object.assign(run,{
+      hops:distance(game.hops),cuts:distance(game.cut),progress:game.endless?0:game.fin?100:Math.round(game.progress*100),
+      coins:Math.min(100000000,game.res?.total??game.coins),distance:game.endless?distance(game.farthest):0
+    });
     enqueue(run);
   }
   function close(){if(!run)return;if(!['failed','won'].includes(run.state))save('left');run=game=null;}
   function start(g,entry){
     close();if(choice!=='yes'||!crypto.randomUUID)return;
     game=g;activeMs=0;nextSave=15000;skipFrame=true;
-    run={id:crypto.randomUUID(),type:'run',rev:0,platform,build:'p1',entry,gear:g.skin,level:g.idx+1,deaths:0,revived:0,pad:0,pad2:0,reason:'none',reason2:'none',mult:0,frames:0,frameMs:0,slow:0};
+    run={id:crypto.randomUUID(),type:'run',rev:0,platform,build,entry,gear:g.skin,level:g.endless?0:g.idx+1,deaths:0,revived:0,
+      itemRevived:0,settled:0,pad:0,pad2:0,pad3:0,reason:'none',reason2:'none',reason3:'none',mult:0,frames:0,frameMs:0,slow:0};
     save('playing');
   }
   function tick(ms){
@@ -66,16 +71,24 @@
   function pause(){skipFrame=true;if(run?.state==='playing')save('away');}
   function resume(){if(run?.state==='away'){skipFrame=true;save('playing');}}
   function death(reason,pad){
-    if(!run)return;const second=run.deaths>0;run.deaths=Math.min(2,run.deaths+1);
-    run[second?'pad2':'pad']=pad;run[second?'reason2':'reason']=['slip','spike','void'].includes(reason)?reason:'other';save('failed');
+    if(!run)return;
+    run.deaths=Math.min(3,run.deaths+1);
+    const suffix=run.deaths===1?'':String(run.deaths);
+    run['pad'+suffix]=distance(pad);run['reason'+suffix]=['slip','spike','void'].includes(reason)?reason:'other';
+    save('failed');
   }
-  function revive(){if(run){run.revived=1;skipFrame=true;save('playing');}}
+  function revive(source){
+    if(!run)return;
+    if(source==='item')run.itemRevived=1;else run.revived=1;
+    skipFrame=true;save('playing');
+  }
   function finish(mult){if(run){run.mult=mult;save('won');}}
-  function action(kind,item){if(choice==='yes'&&crypto.randomUUID)enqueue({type:'action',id:crypto.randomUUID(),platform,build:'p1',rev:1,kind,item});}
+  function endlessFinish(){if(run&&run.level===0){run.settled=1;save('failed');}}
+  function action(kind,item){if(choice==='yes'&&crypto.randomUUID)enqueue({type:'action',id:crypto.randomUUID(),platform,build,rev:1,kind,item});}
   window.addEventListener('online',flush);
   window.addEventListener('storage',e=>{if(e.key===pref||e.key===null)change(e.newValue!=='no',false);});
   document.addEventListener('visibilitychange',()=>{if(document.hidden){pause();flush();}});
   window.addEventListener('pagehide',()=>{pause();flush();});
   if(choice==='yes')schedule(1000);
-  window.KnifeStats={get choice(){return choice;},change,start,close,tick,pause,resume,death,revive,finish,action};
+  window.KnifeStats={get choice(){return choice;},change,start,close,tick,pause,resume,death,revive,finish,endlessFinish,action};
 })();
