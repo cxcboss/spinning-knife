@@ -519,6 +519,8 @@ const ATLAS_SIZE = 1024;
 const LABELS = [2, 3, 4, 5, 6, 8, 10, 20, 50, 100];          // multiplier label cells m0..m9
 const FACE_COUNT=7;
 const ATL = {
+  cityMasonry:[0,896,96,960], cityGlass:[96,896,192,960], cityLofts:[192,896,288,960],
+  cityFarMasonry:[288,896,384,960], cityFarGlass:[384,896,480,960], cityFarLofts:[480,896,576,960],
   rind:[0,768,128,896], porcelain:[128,768,256,896], wing:[256,768,384,896], wrapper:[384,768,512,896],
   note:[512,768,640,896], brickStamp:[640,768,768,896], tile:[768,768,896,896],
   emoji3:[384,128,512,256],emoji4:[768,256,896,384],emoji5:[896,256,1024,384],emoji6:[768,576,896,704],
@@ -1001,6 +1003,46 @@ function paintAtlas() {
     g.strokeStyle='#e2cbc1';g.lineWidth=3;g.strokeRect(5,5,118,118);
     g.fillStyle='#ead7cc';for(let j=0;j<54;j++){const x=(j*37+7)%123,y=(j*71+13)%127;g.fillRect(x,y,1+j%3,1.6);}
   });
+  // Levels reuse these facade prints. The far row has its edges softened at bake time.
+  const facade=document.createElement('canvas'),blurred=document.createElement('canvas');
+  facade.width=96;facade.height=64;blurred.width=32;blurred.height=22;
+  const ink=facade.getContext('2d'),softFacade=blurred.getContext('2d');
+  for(const [nearTile,farTile,columns,rows] of [
+    ['cityMasonry','cityFarMasonry',4,7],['cityGlass','cityFarGlass',5,6],['cityLofts','cityFarLofts',3,6],
+  ]){
+    const rng=mulberry32(columns*109);
+    const masonry=ink.createLinearGradient(0,0,96,64);
+    masonry.addColorStop(0,'#f8fcff');masonry.addColorStop(.55,'#edf2f7');masonry.addColorStop(1,'#f9fbff');
+    ink.fillStyle=masonry;ink.fillRect(0,0,96,64);
+    const stepX=84/columns,stepY=55/rows;
+    for(let row=0;row<rows;row++){
+      const y=5+row*stepY;
+      ink.fillStyle='#cfdae7';ink.fillRect(0,y+stepY-.75,96,.65);
+      ink.fillStyle='#ffffff';ink.fillRect(0,y+stepY,96,.65);
+      for(let col=0;col<columns;col++){
+        const x=6+col*stepX,margin=nearTile==='cityGlass'?1.05:3.2;
+        const w=stepX-margin*2,h=stepY-2;
+        ink.fillStyle='#a3b6cb';ink.fillRect(x+margin-.5,y-.3,w+1,h+.55);
+        const glass=ink.createLinearGradient(x,y,x,y+h);
+        glass.addColorStop(0,nearTile==='cityGlass'?'#a6bacd':'#bdcbd8');glass.addColorStop(1,rng()<.19?'#f5eacf':'#dce8f3');
+        ink.fillStyle=glass;ink.fillRect(x+margin,y,w,h);
+        ink.fillStyle='#f6fbff';ink.fillRect(x+margin,y+h,w,nearTile==='cityLofts'?1.35:.65);
+        if(nearTile!=='cityGlass'){
+          ink.fillStyle='#dfe9f1';ink.fillRect(x+margin+w*.47,y,.72,h);
+        }
+      }
+    }
+    for(let i=0;i<800;i++){
+      const x=rng()*96,y=rng()*64;
+      ink.fillStyle=i%2?'#697f9d1f':'#ffffff34';ink.fillRect(x,y,.3+rng()*1.55,.45);
+    }
+    const groundHaze=ink.createLinearGradient(0,43,0,64);
+    groundHaze.addColorStop(0,'#ffffff00');groundHaze.addColorStop(1,'#ffffff');
+    ink.fillStyle=groundHaze;ink.fillRect(0,43,96,21);
+    g.drawImage(facade,ATL[nearTile][0],ATL[nearTile][1]);
+    softFacade.clearRect(0,0,32,22);softFacade.drawImage(facade,0,0,32,22);
+    g.drawImage(blurred,ATL[farTile][0],ATL[farTile][1],96,64);
+  }
   /* clouds */
   function cloud(name, dark, light) {
     const r = rr(ATL[name]);
@@ -1713,29 +1755,35 @@ function platformPolys(x0, x1, top, bot, z0, z1, T, bv) {
   }
   return polys;
 }
-/* Distant rooftops fade into the horizon. */
-function pillarPolys(cx, w, h, cz, d, T) {
-  const x0 = cx - w / 2, x1 = cx + w / 2, z0 = cz - d / 2, z1 = cz + d / 2, y1 = h, y0 = -60, P = T.pil;
-  // Bake aerial perspective into the skyline once so distant faces recede.
-  const haze = hexc(T.fog), depth = sstep(8, 50, -cz) * .55;
-  const stone = color => mixc(hexc(color), haze, depth);
-  const top = stone(P.top), L = stone(P.left), F = stone(P.front), R = stone(P.right), low = stone(P.low);
-  const ymid = Math.min(y1 - 1, 4);
-  const face = (n, a, b, c0) => {
-    const k = [mkPoly([[a[0], y1, a[1]], [b[0], y1, b[1]], [b[0], ymid, b[1]], [a[0], ymid, a[1]]], n, [c0, c0, mixc(c0, low, 0.55), mixc(c0, low, 0.55)])];
-    k.push(mkPoly([[a[0], ymid, a[1]], [b[0], ymid, b[1]], [b[0], y0, b[1]], [a[0], y0, a[1]]], n, [mixc(c0, low, 0.55), mixc(c0, low, 0.55), mulc(low, 0.82), mulc(low, 0.82)]));
-    return k;
-  };
-  const polys = [mkPoly([[x0, y1, z0], [x0, y1, z1], [x1, y1, z1], [x1, y1, z0]], [0, 1, 0], top)];
-  polys.push(...face([0, 0, 1], [x0, z1], [x1, z1], F), ...face([-1, 0, 0], [x0, z0], [x0, z1], L), ...face([1, 0, 0], [x1, z1], [x1, z0], R));
-  // Recesses are part of the static skyline batch, with less contrast at a distance.
-  if(cz < -10 && w > 2.8 && y1 > 3){
-    const trim=mixc(F,hexc(P.top),.28),glass=mixc(F,low,.34),z=z1+.012;
-    polys.push(mkPoly([[x0,y1-.21,z],[x1,y1-.21,z],[x1,y1-.12,z],[x0,y1-.12,z]],[0,0,1],trim));
-    for(let col=0;col<3;col++){
-      const x=x0+w*(.19+col*.24),y=y1-.63;
-      polys.push(mkPoly([[x,y-.45,z],[x+w*.11,y-.45,z],[x+w*.11,y,z],[x,y,z]],[0,0,1],glass));
+/* Baked skyline geometry and facade UVs. None of these meshes take part in collision. */
+function skylinePolys(building,T) {
+  const {x,z,w,h,d,style=0,far=false}=building,base=T.pil;
+  const haze=mixc(hexc(T.sky[1]),hexc(T.fog),.58);
+  const depth=far?.72:.39;
+  const faceColor=color=>mixc(hexc(color),haze,depth);
+  const roof=faceColor(base.top),front=faceColor(base.front),left=faceColor(base.left),right=faceColor(base.right);
+  const mist=mixc(haze,hexc(T.sky[2]),far?.24:.38);
+  const wallColors=[front,left,right];
+  const map=atlUV((far?['cityFarMasonry','cityFarGlass','cityFarLofts']:['cityMasonry','cityGlass','cityLofts'])[style],1);
+  const uv=[[map[0],map[1]],[map[2],map[1]],[map[2],map[3]],[map[0],map[3]]];
+  const noLight=[0,0,0],polys=[];
+  function shell(cx,cz,width,depth,bottom,top,printed){
+    const x0=cx-width/2,x1=cx+width/2,z0=cz-depth/2,z1=cz+depth/2;
+    polys.push(mkPoly([[x0,top,z0],[x0,top,z1],[x1,top,z1],[x1,top,z0]],noLight,roof));
+    const sides=[[[x0,z1],[x1,z1]],[[x0,z0],[x0,z1]],[[x1,z1],[x1,z0]]];
+    for(let i=0;i<sides.length;i++){
+      const [[ax,az],[bx,bz]]=sides[i],color=wallColors[i];
+      const lower=printed?mixc(color,mist,.44):color;
+      polys.push(mkPoly([[ax,top,az],[bx,top,bz],[bx,bottom,bz],[ax,bottom,az]],noLight,[color,color,lower,lower],printed?uv:null));
+      if(printed)polys.push(mkPoly([[ax,bottom,az],[bx,bottom,bz],[bx,-63,bz],[ax,-63,az]],noLight,[lower,lower,mist,mist]));
     }
+  }
+  shell(x,z,w,d,h-Math.max(9,w*3.1),h,true);
+  if(!far){
+    // Boxed roof equipment and stepped penthouses break up the roofline of the nearer block.
+    if(style===0)shell(x+w*.10,z-d*.20,w*.42,d*.39,h-.025,h+.60,false);
+    if(style===1)shell(x-w*.07,z-d*.07,w*.68,d*.70,h-.025,h+1.05,false);
+    if(style===2)shell(x+w*.20,z-d*.15,w*.19,d*.30,h-.025,h+.48,false);
   }
   return polys;
 }
@@ -2512,11 +2560,15 @@ function genLevel(idx, seedBump) {
       objs.push({ t: 'emoji', x: mx, y: ay - 0.78, floatY: ay, face: Math.floor(rn()*FACE_COUNT), radius:.55+rn()*.32, air:true });
     }
   }
-  /* ---- backdrop pillars (positions only) ---- */
-  const bg = [], rb = mulberry32(seed ^ 0x5bd1e995), endX = T0 + 40;
-  for (let x = -30; x < endX; x += 3.4 + rb() * 4.6) {
-    const far = rb(), z = -7 - far * 38, w = 1.8 + rb() * 2.6 + far * 1.8, hgt = 2.5 + rb() * 8 + far * 7;
-    bg.push({ x, z, w, d: w * (0.8 + rb() * 0.5), h: hgt });
+  /* The two city rows recede below the play area with different parallax. */
+  const bg = [], rb = mulberry32(seed ^ 0x5bd1e995), endX = T0 + 49;
+  for(const far of [true,false]){
+    for(let x=far?-56:-36;x<endX;x+=(far?6.8:5.5)+rb()*3.4){
+      const z=far?-50-rb()*21:-24-rb()*10;
+      const w=(far?4.9:3.55)+rb()*2.8;
+      const h=(far?8.5:3.3)+rb()*(far?7.2:4.9);
+      bg.push({x,z,w,h,d:w*(.58+rb()*.44),style:Math.floor(rb()*3),far});
+    }
   }
   const clouds = [];
   for (let x = -20; x < 90; x += 6 + rb() * 8) clouds.push({ x, y: 4 + rb() * 9, z: -34 - rb() * 26, s: 3.2 + rb() * 2.4, v: Math.floor(rb() * 2) });
@@ -2663,8 +2715,8 @@ function scLoad(L) {
   if (SC.shadeB) { SC.shadeB.n = 0; SC.shadeB.dirty = true; } else SC.shadeB = GFX.batch(4000, false, false);
   SC.statB.clear(); SC.shadeB.clear();
   const S = SC.statB; SC.mvMesh = {}; SC.cpMesh = []; SC.chimneys = [];
-  /* backdrop pillars */
-  for (const b of L.bg) bakeAdd(S, pillarPolys(b.x, b.w, b.h, b.z, b.d, T));
+  /* The skyline shares the static geometry batch with the course. */
+  for(const building of L.bg)bakeAdd(S,skylinePolys(building,T));
   /* platforms */
   for (const p of W.pl) {
     const marker = landingMarker(p);
@@ -4707,7 +4759,8 @@ function shopDraw(dt) {
   GFX.setCamera([2.65,3.30,dist],[0,.58,0],.84);
   if(!benchMesh)benchMesh=buildWorkbench();
   if(!horizonMesh){
-    const polys=[];for(const [x,y,z,w] of [[-6,-1,-7,2],[-4.3,-.4,-11,1.8],[-2.5,-1.8,-8,1.5],[1.6,-1.6,-9,2],[5,.32,-11,1.7],[6.4,-.7,-6,2.1]])polys.push(...pillarPolys(x,w,y,z,w,T));
+    const buildings=[[-13,1.6,-23,4],[-7,1.05,-16,3.5],[-1,.15,-20,4.2],[4,.25,-19,3.1],[9,.3,-23,4.2],[14,1.85,-21,4.1]];
+    const polys=buildings.flatMap(([x,h,z,w],i)=>skylinePolys({x,h,z,w,d:w*.7,style:i%3,far:i%2===0},T));
     horizonMesh=bakeMesh([{polys}]);
   }
   const o=SC.dynO,t=SC.dynT,a=SC.dynA,soft=atlUV('soft',2);
