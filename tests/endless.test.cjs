@@ -4,7 +4,7 @@ const fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');
 const html=fs.readFileSync(path.join(__dirname,'..','旋转飞刀.html'),'utf8');
 const code=html.split('<script>')[1].split('\ntry { boot();')[0];
 
-function game(storage=new Map()){
+function game(storage=new Map(),navigator={}){
   const nodes=new Map(),resources={live:0};
   const node=key=>{
     if(!nodes.has(key))nodes.set(key,{textContent:'',dataset:{},style:{setProperty(){}},classList:{add(){},remove(){},toggle(){}},querySelector(){}});
@@ -14,9 +14,9 @@ function game(storage=new Map()){
     GFX.batch=()=>{resources.live++;return {addMesh(){},flat(){},clear(){},dispose(){resources.live--;}}};
     UI.stage=$('#stage');Game.onFail=showFail;Game.onFinish=showResult;
     ({ G,UI,SC,Game,SAVE,SAVE_KEY,PHYS,ENDLESS_QUOTA_KEY,canRevive,spendCoins,saveLoad,startEndless,act,
-      endlessRemaining,endlessQuota,grantEndlessInvite,newEndlessLevel,extendEndlessLevel,trimEndlessLevel,
+      endlessRemaining,endlessQuota,grantEndlessShare,newEndlessLevel,extendEndlessLevel,trimEndlessLevel,
       planHop,simHop,newKnife,padAt,useRevive,gFinishResult,knifeFell,gEvents,streamEndless })
-  `,{resources,URLSearchParams,location:{search:''},document:{querySelector:node,documentElement:{style:{setProperty(){}}}},requestAnimationFrame(){},setTimeout(){},
+  `,{resources,navigator,URLSearchParams,location:{search:''},document:{querySelector:node,documentElement:{style:{setProperty(){}}}},requestAnimationFrame(){},setTimeout(){},
     localStorage:{getItem:k=>storage.get(k),setItem:(k,v)=>storage.set(k,v)}});
   return {...api,storage,resources,node};
 }
@@ -28,24 +28,48 @@ function lose(a,extraCoins=0){
   assert.equal(a.G.mode,'failed');
 }
 
-test('无尽每日有五次开局，邀请占位不发次数，收到确认凭据才加一次',async()=>{
-  const a=game();
-  for(let i=0;i<5;i++){
+test('默认开三局，分享每次增加两局且当天最多三次，取消不加局数',async()=>{
+  const updates=[];
+  let complete;
+  const a=game(new Map(),{share(data){
+    updates.push(data);
+    return new Promise(resolve=>{complete=resolve;});
+  }});
+  for(let i=0;i<3;i++){
     a.UI.screen='endless';
     assert(await a.startEndless());
-    assert.equal(a.endlessRemaining(),4-i);
+    assert.equal(a.endlessRemaining(),2-i);
   }
   a.UI.screen='endless';
   assert.equal(await a.startEndless(),false);
-  assert.equal(await a.act('inviteEndless'),false);
-  const afterReload=game(a.storage);
-  assert.equal(afterReload.endlessRemaining(),0);
-  const day=afterReload.endlessQuota().day;
-  assert.equal(afterReload.endlessRemaining(afterReload.endlessQuota(day+1)),5);
-  assert(!afterReload.grantEndlessInvite({day:day-1,id:'previous-day'}));
-  assert(afterReload.grantEndlessInvite({day,id:'verified-friend-event'}));
-  assert(!afterReload.grantEndlessInvite({day,id:'verified-friend-event'}));
-  assert.equal(afterReload.endlessRemaining(),1);
+  const first=a.act('shareEndless');
+  assert.equal(await a.act('shareEndless'),false);
+  complete(Promise.reject(Object.assign(new Error('closed'),{name:'AbortError'})));
+  assert.equal(await first,false);
+  assert.equal(a.endlessRemaining(),0);
+  for(let i=0;i<3;i++){
+    const share=a.act('shareEndless');
+    complete();
+    assert(await share);
+    assert.equal(a.endlessRemaining(),2*(i+1));
+  }
+  assert.equal(await a.act('shareEndless'),false);
+  assert.equal(updates.length,4);
+  assert.equal(updates[0].url,'https://cxcboss.github.io/spinning-knife/');
+  const restored=game(a.storage),day=restored.endlessQuota().day;
+  assert.equal(restored.endlessRemaining(),6);
+  assert.equal(restored.endlessRemaining(restored.endlessQuota(day+1)),3);
+});
+
+test('旧版当日开局继续计入，分享凭据去重并按日期计数',()=>{
+  const a=game(),day=a.endlessQuota().day;
+  a.storage.set(a.ENDLESS_QUOTA_KEY,JSON.stringify({day,started:4,receipts:[]}));
+  assert.equal(a.endlessRemaining(),0);
+  assert.equal(a.endlessQuota().started,4);
+  assert(!a.grantEndlessShare({day:day-1,id:'previous-day'}));
+  assert(a.grantEndlessShare({day,id:'share-today'}));
+  assert(!a.grantEndlessShare({day,id:'share-today'}));
+  assert.equal(a.endlessRemaining(),1);
 });
 
 test('两种复活都能先用或后用，无尽结束只结算一次且续命不扣次数',async()=>{
@@ -57,7 +81,7 @@ test('两种复活都能先用或后用，无尽结束只结算一次且续命�
     assert.equal(a.SAVE.coins,0);
     assert(await a.useRevive(first));
     assert.equal(a.G.coins,12);
-    assert.equal(a.endlessRemaining(),4);
+    assert.equal(a.endlessRemaining(),2);
     assert(!await a.useRevive(second));
     lose(a,9);assert(!a.canRevive(first));assert(a.canRevive(second));
     assert(await a.useRevive(second));
@@ -86,7 +110,7 @@ test('失败待结算时刷新，收入补发一次。旧版余额和已购装�
   const c=game(a.storage);c.saveLoad();
   assert.equal(c.SAVE.coins,1734);
   assert.equal(c.SAVE.unlocked,4);
-  assert.equal(c.endlessRemaining(),4);
+  assert.equal(c.endlessRemaining(),2);
 });
 
 test('普通关终点倍率只乘固定奖金，高倍率不会翻倍沿途收入',()=>{

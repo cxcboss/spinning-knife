@@ -27,6 +27,7 @@
   --safe-top:max(12px,env(safe-area-inset-top));
   --safe-bottom:max(16px,env(safe-area-inset-bottom));
   --gutter:clamp(12px,4%,25px);
+  --icon-action:20px; --icon-nav:22px; --icon-small:14px;
 }
 * {box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-touch-callout:none}
 html,body {margin:0;height:100%;overflow:hidden;font-family:var(--font);font-weight:750;color:var(--paper);touch-action:none;overscroll-behavior:none;background:#101831}
@@ -45,13 +46,15 @@ button[aria-disabled=true] {cursor:default}
 button:focus-visible {outline:2px solid #fff0a8;outline-offset:3px}
 .screen button[data-act] {transform-origin:center;transition:scale .13s,translate .13s,filter .13s}
 .screen button[data-act]:is(:active,.is-pressed) {scale:.965;translate:0 3px;filter:brightness(.88);transition-duration:.045s}
-svg {display:block;fill:currentColor;width:100%;height:100%}
-.glyph {display:inline-block;flex:none;width:1.36em;height:1.36em;vertical-align:middle}
+/* Icons have a fixed slot within each control size. Labels never inherit the SVG baseline. */
+.glyph {display:block;flex:none;width:var(--glyph-size,var(--icon-action));height:var(--glyph-size,var(--icon-action));pointer-events:none}
+.glyph svg {display:block;width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.ui-label {min-width:0;line-height:1.18}
+.round,.view-switch,.dialog-medal {--glyph-size:var(--icon-nav)}
 .round,.view-switch,.icon-link,.action.soft,.carry {
   border:1px solid #8ca6dc85;background:var(--grain),var(--blue);box-shadow:var(--blue-depth);color:#f6f4e7;
 }
 .round,.icon-link {width:max(44px,calc(var(--u)*11.5));height:max(44px,calc(var(--u)*11.5));display:grid;place-items:center;border-radius:13px}
-.round svg {width:54%;height:54%}
 .round.sm {font-size:14px}
 .toprow,.topbar {padding:0 var(--gutter);margin-top:var(--safe-top);display:grid;align-items:center;min-height:48px;gap:8px;position:relative;z-index:2}
 .toprow {grid-template-columns:1fr auto;justify-items:start}
@@ -62,9 +65,9 @@ svg {display:block;fill:currentColor;width:100%;height:100%}
   color:#fff5dd;text-shadow:0 2px #192847,0 4px 6px #0a163f85}
 .pill {display:inline-flex;align-items:center;gap:7px;min-height:34px;padding:4px 10px 4px 5px;border:1px solid #84a8df9c;
   border-radius:99px;background:var(--grain),linear-gradient(#24365d,#142540);box-shadow:inset 0 1px 0 #b6ccff55,0 3px 0 #132649;white-space:nowrap}
-.pill b {min-width:1.15em;font-weight:850;text-align:right;font-size:clamp(12px,calc(var(--u)*3.7),18px);font-variant-numeric:tabular-nums}
-.coin-token {display:grid;place-items:center;flex:none;width:22px;height:22px;border:1px solid #ffe98f;border-radius:50%;color:#764315;
-  background:var(--gold);box-shadow:inset 0 0 0 2px #e4a32f,0 2px 0 #8f531c;font-size:13px;line-height:1}
+.pill b {line-height:1;min-width:1.15em;font-weight:850;text-align:right;font-size:clamp(12px,calc(var(--u)*3.7),18px);font-variant-numeric:tabular-nums}
+.coin-token {--glyph-size:13px;display:grid;place-items:center;flex:none;width:22px;height:22px;border:1px solid #ffe98f;border-radius:50%;color:#764315;
+  background:var(--gold);box-shadow:inset 0 0 0 2px #e4a32f,0 2px 0 #8f531c}
 .pill.bump,.bump {animation:bump .2s ease-out}
 @keyframes bump {40%{scale:1.12}}
 
@@ -81,15 +84,17 @@ svg {display:block;fill:currentColor;width:100%;height:100%}
 }
 .btn.big {width:min(100%,360px);min-height:clamp(56px,calc(var(--u)*18),90px);border-radius:clamp(14px,calc(var(--u)*5),24px);
   display:flex;align-items:center;justify-content:center;gap:12px;font-size:calc(var(--u)*8.2);font-weight:900}
-.btn .pi {display:block;width:1.05em;height:1.05em}
+.btn.big {--glyph-size:clamp(25px,calc(var(--u)*7.7),34px)}
+.btn.big .glyph {filter:drop-shadow(0 1px 0 #fffac080)}
 .btn .pt {display:grid;text-align:left;line-height:1.09}
 .btn small {font-size:.43em;font-weight:800;margin-top:3px}
 .row3 {width:100%;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:clamp(5px,2%,12px);padding:7px;
   border:1px solid #8194bf7d;border-radius:17px;background:var(--grain),linear-gradient(#253b65f2,#172441f5);box-shadow:inset 0 1px 0 #93bdf32e,0 4px 0 #0f1831,0 8px 20px #12182759}
 .sq {display:grid;justify-items:center;align-content:center;gap:4px;border-radius:11px;min-height:clamp(53px,calc(var(--u)*15.6),77px);padding:4px 1px;
   border:1px solid #779cdb5c;background:var(--grain),linear-gradient(#3b5789,#2a406b);box-shadow:var(--blue-depth);font-size:clamp(10px,calc(var(--u)*3.36),17px);line-height:1.1}
-.sq i {display:grid;place-items:center;width:clamp(24px,calc(var(--u)*6.5),34px);height:clamp(24px,calc(var(--u)*6.5),34px);color:#aee4ff}
-.sq:nth-child(2) i {color:#ffe19d}.sq:nth-child(3) i {color:#b6f4d5}.sq:nth-child(4) i {color:#d5dcf3}
+.sq {--glyph-size:clamp(22px,calc(var(--u)*6.45),29px);grid-template-rows:var(--glyph-size) auto}
+.sq .glyph {color:#c9e7fb;filter:drop-shadow(0 1px 1px #101a32a0)}
+.sq .ui-label {align-self:center;text-align:center}
 .pausebtn {position:absolute;top:var(--safe-top);left:var(--gutter)}
 .hudcoin {position:absolute;top:calc(var(--safe-top) + 4px);right:var(--gutter)}
 .lvlbar {position:absolute;top:calc(var(--safe-top) + 3px);left:50%;translate:-50% 0;width:min(40%,230px);text-align:center}
@@ -97,17 +102,19 @@ svg {display:block;fill:currentColor;width:100%;height:100%}
 .bar {height:9px;margin-top:5px;border:1px solid #99b9e78a;border-radius:99px;overflow:hidden;background:#172342;box-shadow:inset 0 2px 1px #0d162c}
 .bar i {display:block;height:100%;width:0;background:var(--gold);border-radius:inherit;box-shadow:inset 0 1px 0 #fff3c3}
 .hint {position:absolute;inset:auto calc(var(--gutter) + 5px) max(60px,11%) calc(var(--gutter) + 5px);text-align:center}
-.hand {font-size:calc(var(--u)*11);animation:tap 1s ease-in-out infinite;filter:drop-shadow(0 2px 4px #10183190)}
+.hand {--glyph-size:clamp(33px,calc(var(--u)*10.7),50px);width:max-content;margin:auto;color:#ffe28c;
+  animation:tap 1s ease-in-out infinite;filter:drop-shadow(0 2px 2px #1b294c)}
+.hand svg {stroke-width:1.55}
 @keyframes tap {50%{translate:0 -7px;scale:.9}}
 .htxt {display:inline-block;margin-top:6px;max-width:86%;padding:9px 14px;border-radius:12px;border:1px solid #90aed57d;background:#152544e8;font-size:clamp(12px,calc(var(--u)*4.3),21px);box-shadow:0 3px 0 #101b306e}
 .hud-pack {position:absolute;right:var(--gutter);bottom:calc(var(--safe-bottom) + 14px);width:max(44px,calc(var(--u)*12.5));height:max(44px,calc(var(--u)*12.5));
   display:grid;place-items:center;border:1px solid #c5f4e8;border-radius:13px;color:#193b40;background:var(--grain),linear-gradient(#b7f2db,#61bfae);
   box-shadow:inset 0 2px 0 #e4ffea,0 4px 0 #2b6166,0 5px 0 #142e41}
-.hud-pack .glyph {width:58%;height:58%}
+.hud-pack {--glyph-size:calc(var(--icon-nav) + 2px)}
 .hud-pack small {position:absolute;right:-5px;top:-5px;min-width:19px;border:1px solid #ffe094;border-radius:99px;background:#5c3c22;color:#ffecb9;font-size:12px}
 #live-powers {position:absolute;inset:calc(var(--safe-top) + 57px) var(--gutter) auto;display:flex;flex-wrap:wrap;justify-content:center;gap:5px}
 .effect-chip {position:relative;display:flex;align-items:center;gap:6px;padding:5px 8px 7px;overflow:hidden;border-radius:9px;background:#132240f3;border:1px solid #817fb6;color:var(--paper);box-shadow:0 2px 6px #121d3a37}
-.effect-chip .glyph {width:17px;height:17px;color:var(--accent)}.effect-chip span {display:grid;line-height:1.16;gap:2px}
+.effect-chip {--glyph-size:17px}.effect-chip .glyph {color:var(--accent)}.effect-chip .effect-text {display:grid;line-height:1.16;gap:2px}
 .effect-chip b {font-size:12px}.effect-chip small {font-size:10px;color:var(--mist);font-weight:560}.effect-chip time {font-size:12px;color:var(--accent);font-weight:800}
 .effect-chip .effect-bar {position:absolute;bottom:0;left:0;width:100%;height:2px;transform-origin:left;transform:scaleX(var(--remaining,1));background:var(--accent)}
 
@@ -135,12 +142,13 @@ svg {display:block;fill:currentColor;width:100%;height:100%}
 .lv small {font-size:10px;line-height:1}
 .lv.lock {color:#a1b1d1;border-color:#51678d;background:var(--grain),var(--well);box-shadow:inset 0 2px 2px #091c3e8c,0 1px 0 #6e8dc54a}
 .lv.lock b {font-size:clamp(13px,calc(var(--u)*4.35),21px)}
-.lk {width:12px;height:12px;opacity:.85}
+.lk {--glyph-size:13px;opacity:.88}
 .lv.gate:not(.cur):not(.lock) {background:var(--grain),linear-gradient(#805390,#51416c);border-color:#a981af}
 .lv.gate.lock {border-color:#966ca2}
 .ss,.result-stars {display:flex;align-items:center;justify-content:center}
-.st {display:block;color:#212d50}
-.ss .st {width:clamp(9px,calc(var(--u)*3),15px);height:clamp(9px,calc(var(--u)*3),15px)}
+.st {color:#111e3e}
+.ss .st {--glyph-size:clamp(9px,calc(var(--u)*3),15px)}
+.st.on svg {fill:currentColor}
 .st.on {color:#ffdc68;filter:drop-shadow(0 2px 0 #9f5826)}
 .lv.cur .st {color:#c68a35}.lv.cur .st.on {color:#fff3a8}
 .lv.cur {outline:1px solid #ffffff73;outline-offset:2px}
@@ -161,18 +169,17 @@ svg {display:block;fill:currentColor;width:100%;height:100%}
 .gear-cell.current {border-color:#ffdf83;box-shadow:inset 0 0 0 1px #eab344,0 3px 0 #503324}
 .gear-cell canvas {display:block;width:100%;height:auto;pointer-events:none}
 .gear-cell b {font-size:clamp(12px,calc(var(--u)*3.8),18px)}
-.catalog-price,.gear-cell small {display:flex;align-items:center;gap:3px;font-size:clamp(10px,calc(var(--u)*3),15px);color:#f9db88}
+.catalog-price,.gear-cell small {--glyph-size:var(--icon-small);display:flex;align-items:center;gap:4px;font-size:clamp(10px,calc(var(--u)*3),15px);color:#f9db88}
 .gear-cell small {color:#d0e0fa}.gear-cell[data-owned=true] small {color:#afeed3}
-.gear-cell small .glyph {width:1em;height:1em}
 
 /* Supply trays and settings */
 .supply-sheet,.settings-sheet {padding:14px;display:grid;gap:13px;min-width:0}
-.section-name {display:flex;align-items:center;gap:7px;font-size:clamp(17px,calc(var(--u)*5.3),25px);font-weight:900}
+.section-name {--glyph-size:var(--icon-nav);display:flex;align-items:center;gap:9px;font-size:clamp(17px,calc(var(--u)*5.3),25px);font-weight:900}
 .section-name .glyph {color:#ffda76}
 .days {grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
 .day {display:grid;place-items:center;gap:2px;min-height:clamp(40px,calc(var(--u)*12),55px);border-radius:8px;padding:3px;
   border:1px solid #5d7aa7;background:var(--grain),var(--well);box-shadow:inset 0 2px 1px #122346;font-size:12px;color:#d2e0f7}
-.day .glyph {width:17px;height:17px;color:#bcd2ff}
+.day .glyph {--glyph-size:17px;color:#bcd2ff}
 .day.today .glyph,.day.past .glyph {color:inherit}.day.past {color:#b1efd3}
 .supply-sheet .daily-prize {font-size:13px;color:var(--mist)}
 .supply-tabs {display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;border:1px solid #486393;border-radius:12px;background:#172946}
@@ -185,18 +192,18 @@ svg {display:block;fill:currentColor;width:100%;height:100%}
 .supply-tile small {color:var(--mist);font-size:11px}
 .kit-model {display:block;max-width:100%;height:auto;width:100%;pointer-events:none}
 .supply-tile .kit-model {width:min(100%,132px)}
-.kit-check {position:absolute;top:4px;right:3px;color:#b6efce}
+.kit-check {--glyph-size:var(--icon-small);position:absolute;top:5px;right:5px;color:#b6efce}
 .selected-kit,.kit-actions {display:flex;align-items:center;gap:8px}
 .selected-kit {min-height:30px}
 .selected-kit p {flex:1;font-size:clamp(12px,calc(var(--u)*3.6),16px);line-height:1.35;color:#dae5fc}
-.carry {min-height:44px;border-radius:9px;padding:0 9px;font-size:12px;flex:none}
+.carry {--glyph-size:16px;display:flex;align-items:center;justify-content:center;gap:5px;min-height:44px;border-radius:9px;padding:0 9px;font-size:12px;flex:none}
 .carry.selected {color:#bef1d6;background:#245658}
 .kit-actions>* {flex:1;min-width:0}
-.kit-actions button {min-height:44px;padding:5px 4px;border-radius:9px;display:flex;align-items:center;justify-content:center;gap:4px;font-size:clamp(11px,calc(var(--u)*3.5),16px)}
+.kit-actions button {--glyph-size:18px;min-height:44px;padding:5px 4px;border-radius:9px;display:flex;align-items:center;justify-content:center;gap:4px;font-size:clamp(11px,calc(var(--u)*3.5),16px)}
 .kit-actions button[data-act=adSupply] {border:1px solid #61779f;color:#cbd8ef;background:#223555}
 .settings-sheet {gap:0}
 .setrow {display:flex;align-items:center;justify-content:space-between;gap:9px;text-align:left;min-height:55px;border-bottom:1px solid #7b95c744;font-size:clamp(13px,calc(var(--u)*4),19px);padding:4px 1px}
-.setrow>span {display:flex;align-items:center;gap:7px}.setrow .glyph {color:#b7cff2}
+.setting-label {--glyph-size:var(--icon-action);display:flex;align-items:center;gap:9px;min-width:0}.setting-label .glyph {color:#c6dcfb}
 .sw {position:relative;flex:none;width:48px;height:25px;border:1px solid #738cb6;border-radius:99px;background:#162544;box-shadow:inset 0 2px 0 #101a35}
 .sw.on {background:#307e78;border-color:#88cfc0}
 .sw u {position:absolute;top:3px;left:4px;width:17px;height:17px;background:linear-gradient(#fff7df,#c4d2eb);border-radius:50%;box-shadow:0 2px 0 #10234485;transition:translate .15s}
@@ -227,29 +234,28 @@ svg {display:block;fill:currentColor;width:100%;height:100%}
   box-shadow:var(--blue-depth);font-size:20px;color:#e3efff}
 .failure .dialog-medal {color:#ffe9cf;background:var(--grain),linear-gradient(#a85f6d,#71465d);border-color:#e9a2a0}
 .result-stars {gap:6px;margin:3px 0}
-.result-stars .st {width:clamp(29px,calc(var(--u)*11),52px);height:clamp(29px,calc(var(--u)*11),52px);filter:drop-shadow(0 2px 0 #0e203f)}
-.result-stars .st:nth-child(2) {scale:1.21;translate:0 -4px}
+.result-stars .st {--glyph-size:clamp(29px,calc(var(--u)*11),52px);filter:drop-shadow(0 2px 0 #0e203f)}
 .result-stars .st.on {filter:drop-shadow(0 3px 0 #8b542c) drop-shadow(0 0 7px #ffb84e75)}
 .dialog-body {display:grid;gap:11px;padding:14px 15px 16px}
 .dialog-body p {text-align:center;color:#e0eaff;font-size:clamp(13px,calc(var(--u)*3.85),18px)}
 .action {width:100%;min-height:46px;display:flex;align-items:center;justify-content:center;gap:7px;padding:8px 7px;border-radius:10px;
   font-size:clamp(13px,calc(var(--u)*4.2),21px);font-weight:850;line-height:1.12}
 .action.quiet,.action[aria-disabled=true] {border:1px solid #6d84b174;background:#25385b;color:#c1cfe5;box-shadow:inset 0 2px 0 #14274674}
-.action .glyph {font-size:.91em}
 .icon-dock {display:flex;justify-content:center;gap:9px;padding-top:1px}
-.icon-dock .icon-link {font-size:16px}
+.icon-dock .icon-link {--glyph-size:var(--icon-action);font-size:16px}
 .icon-dock .icon-link.wide {width:auto;padding:0 12px;display:flex;gap:7px;min-width:86px;justify-content:center;font-size:clamp(12px,calc(var(--u)*3.7),17px)}
 .earnings {display:grid;grid-template-columns:1fr auto;gap:4px 8px;align-items:center;padding:10px 11px;border:1px solid #627eb3;border-radius:10px;background:var(--grain),var(--well);box-shadow:inset 0 2px 0 #142141}
 .earnings>span {color:#d8e5fb;font-size:14px}
 .earnings b {display:flex;align-items:center;gap:6px;color:#ffe394;font-size:clamp(22px,calc(var(--u)*8.1),37px);line-height:1;font-variant-numeric:tabular-nums}
-.earnings b .glyph {font-size:.58em}
+.earnings b .glyph {--glyph-size:var(--icon-nav)}
 .finish-badge {justify-self:center;display:flex;align-items:center;gap:6px;font-size:clamp(11px,calc(var(--u)*3.5),17px);color:#f0ebdb;font-weight:750}
 .finish-badge .glyph {color:var(--hit)}.finish-badge b {border:1px solid var(--hit);border-radius:6px;padding:1px 8px;background:#172748;color:#fff0c5}
 .crit-receipt {grid-column:1/-1;text-align:right;font-size:11px;color:#f7d288}
 .power-choice {width:100%;display:grid;grid-template-columns:58px minmax(0,1fr) auto;gap:7px;align-items:center;text-align:left;padding:5px 6px;
   min-height:62px;border:1px solid #6684b2;border-radius:10px;background:var(--grain),linear-gradient(#364f7a,#223956);box-shadow:var(--blue-depth)}
-.power-choice span {display:grid;gap:3px}.power-choice b {font-size:clamp(13px,calc(var(--u)*4.1),19px)}.power-choice small {font-size:clamp(10px,calc(var(--u)*3.1),13px);color:#d3e0f8;font-weight:550;line-height:1.25}
-.power-choice em {font-style:normal;text-align:center;display:grid;justify-items:center;gap:2px;padding:5px 4px;border-radius:7px;font-size:clamp(9px,calc(var(--u)*2.7),12px);color:#bfcee5;background:#162641}
+.power-choice .power-description {display:grid;gap:3px;min-width:0}.power-choice b {font-size:clamp(13px,calc(var(--u)*4.1),19px)}.power-choice small {font-size:clamp(10px,calc(var(--u)*3.1),13px);color:#d3e0f8;font-weight:550;line-height:1.25}
+.power-choice em {--glyph-size:var(--icon-small);font-style:normal;text-align:center;display:flex;align-items:center;justify-content:center;gap:4px;
+  max-width:104px;padding:5px 6px;border-radius:7px;font-size:clamp(9px,calc(var(--u)*2.7),12px);color:#bfcee5;background:#162641}
 .power-choice.ready em {color:#eaf9df;background:#256164}
 #toast {position:absolute;left:50%;bottom:calc(var(--safe-bottom) + 72px);translate:-50% 0;max-width:92%;text-align:center;padding:9px 13px;border:1px solid #8e9dbdae;border-radius:11px;
   background:#142342f7;color:#fff5e0;box-shadow:0 3px 0 #111b33;font-size:14px;opacity:0;pointer-events:none;z-index:9}
@@ -269,7 +275,7 @@ svg {display:block;fill:currentColor;width:100%;height:100%}
   #scr-shop .topbar {grid-template-columns:44px minmax(0,1fr) auto}
   #scr-shop .ttl {font-size:16px}
   #scr-shop .armory-wallet .pill {padding-right:5px}
-  .setrow .glyph {width:1em;height:1em}
+  .setting-label {--glyph-size:18px;gap:6px}
   .segs button {padding-inline:4px;font-size:10px}
   .icon-dock {gap:5px}
   .icon-dock .icon-link.wide {min-width:0;padding-inline:7px}
@@ -285,7 +291,7 @@ svg {display:block;fill:currentColor;width:100%;height:100%}
   color:#f2f7ff;border:1px solid #8ca6dcc0;background:var(--grain),var(--blue);box-shadow:var(--blue-depth)}
 .endless-entry .glyph {color:#a5e7eb}
 .endless-entry small {margin-left:auto;color:#dcf3f8;padding:3px 7px;border-radius:7px;background:#233d64;font-size:11px}
-.endless-entry strong {font-size:clamp(13px,calc(var(--u)*3.85),19px)}
+.endless-entry .ui-label {font-size:clamp(13px,calc(var(--u)*3.85),19px);font-weight:850}
 .dialog-head.endless {background:var(--grain),radial-gradient(ellipse at 50% 0%,#56948e,#2e4b78 80%)}
 .dialog-head.endless .dialog-medal {background:var(--grain),linear-gradient(#468c93,#2d5874);color:#dcffee;border-color:#b5e2df}
 .endless-tally {font-size:13px;text-align:center;color:#dce8fa}
@@ -303,6 +309,14 @@ svg {display:block;fill:currentColor;width:100%;height:100%}
   .logo {margin-top:13px}.l3 {margin-top:6px}.homebot {gap:7px}
   .btn.big {min-height:47px}.endless-entry {min-height:36px}.row3 {padding:5px}.sq {min-height:44px}
 }
+
+.endless-quota {display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;
+  border:1px solid #6c88b480;border-radius:9px;background:var(--well);color:#d6e5fa;font-size:clamp(11px,calc(var(--u)*3.1),14px)}
+.endless-quota span:last-child {font-variant-numeric:tabular-nums;white-space:nowrap;color:#bce8df}
+.dialog-body .share-help {font-size:12px;color:#c5d5ef;line-height:1.35}
+.share-url {width:100%;min-width:0;-webkit-user-select:text;-webkit-touch-callout:default;padding:8px;border:1px solid #879cc8;border-radius:8px;color:var(--paper);
+  background:#1a2a4b;user-select:text;font:inherit;font-size:12px;pointer-events:auto;touch-action:manipulation}
+.action[aria-busy=true] {filter:brightness(.78);cursor:progress}
 </style>
 <script type="text/plain" id="font-license">
 Bundled font: Noto Sans SC, subset for this game (Slice Han UI).
@@ -4277,8 +4291,10 @@ function musicStop() { if (AUD.mTimer) { clearInterval(AUD.mTimer); AUD.mTimer =
  * ============================================================ */
 const I18N = {
   zh: {
-    endless:'无尽挑战', endlessStart:'进入赛道', endlessToday:'今日剩余 {n} 局', endlessLimit:'每日 5 次开局，邀请好友可增加次数', endlessOut:'今日次数已用完',
-    inviteEndless:'邀请好友 · 暂未开放', inviteUnavailable:'邀请功能将在微信小游戏接入', inviteSuccess:'邀请成功，无尽次数 +1',
+    endless:'无尽挑战', endlessStart:'进入赛道', endlessToday:'今日剩余 {n} 局', endlessLimit:'每日基础 {n} 局', endlessOut:'今日次数已用完',
+    shareEndless:'分享游戏 · +{n} 局', shareCount:'今日分享 {n}/{max}', shareLimit:'今日分享奖励已领完',
+    shareMessage:'来玩飞刀切切切！试试你能跳到第几根柱子。', shareSuccess:'分享成功，增加 {n} 局', shareFailed:'分享未完成，请再试一次',
+    shareUnsupported:'在支持系统分享的浏览器打开，可领取分享奖励', copyShare:'复制分享链接', shareCopied:'分享链接已复制', shareSelect:'选中链接后复制',
     endlessPad:'第 {n} 柱', endlessOrigin:'起点', endlessBest:'最远记录', endlessResult:'挑战结束', endlessEarned:'本局收益', cashOut:'结束并结算', backEndless:'再挑战',
     potionEffect:'失败时就近复活，每局一次，可与广告复活同用', potionRevive:'药水复活', finishReward:'终点奖励', collected:'沿途金币',
     playStats:'匿名试玩统计',special:'特别道具',regular:'随身道具',oneSpecial:'每局可用一件',usePower:'使用',adUse:'广告 · 未开放',powerBack:'继续游戏',rushEffect:'6 秒内获得的金币翻倍',tripleEffect:'7 秒内，每次起跳可在空中再跳两次',rainEffect:'5 秒内，每次下落召来五把小刀',allGear:'装备总览',fullPreview:'全屏预览',notOwned:'未拥有',retryGear:'装备并重试',briefRevive:'回到上一根柱子，保留金币',briefSpent:'本局复活已用',doubleLabel:'广告翻倍 · 未开放',reviveLabel:'广告复活',pickKit:'随身道具',adOne:'广告 · 未开放',sfxShort:'音效',musicShort:'配乐',vibShort:'触感',sample:'试切', material:'试切材料', trialKit:'每局一件 · 试玩不限次', previousGear:'上一件装备', nextGear:'下一件装备', trial:'试玩', armory:'装备库', supplies:'补给站', dayTitle:'七日签到', claim:'签到领取', claimed:'今日已领取', nextPrize:'本次签到', dayN:'第 {n} 天', take:'携带', carried:'已携带', unequipItem:'卸下', stock:'库存', adUnit:'看广告 +1', coinUnit:'金币 +1', dailyWon:'签到获得', received:'已领取', rankPrice:'参考价', free:'初始装备', training:'教程', challenge:'试炼', challengeName:'窄柱试炼', normalGear:'原始手感', silverGear:'出刀稍稳', frostGear:'斜插更稳 · 材质碎片', starGear:'稳刃 · 切割冲击环', crownGear:'切割暴击 25% · 金币 ×2', tipHint:'刀尖入柱才能站稳', leanHint:'斜插会改变下一跳的方向', stoneEffect:'斜插后出刀更稳', featherEffect:'空中补跳更高', gildEffect:'切割金币 +25%', onePerRun:'每局可携带一件', current:'本局道具', dailyDays:'累计签到', adFail:'看广告 · 就近复活', retryRun:'重新挑战', fallen:'飞刀滑落', missed:'落入空隙', spiked:'碰到尖刺', reviveNote:'从刚才的柱子继续，保留本局金币', reviveSpent:'本局复活机会已用完', adDouble:'看广告 · 收益翻倍', doubled:'双倍收益已领取', income:'本关收益', critical:'暴击', critBonus:'暴击加成', itemBonus:'道具加成', rewardUnavailable:'本次奖励未领取', changeGear:'换装备', retryWithGear:'用当前装备重试', ownedQty:'×{n}', chooseGift:'购买补给', itemReady:'已携带', dayExtra:'金币', soundPreview:'试听装备', trialGear:'试玩可直接使用', supplyAd:'看广告领取', kitLabel:'道具', shopPrice:'价格', plainRetry:'重试', checkpointShort:'记录点',
@@ -4290,8 +4306,10 @@ const I18N = {
     tipTitle: '玩法', tip1: '点击翻刀，刀尖插进柱面才能站稳', tip2: '空中再点一下，飞得更远', tip3: '斜插会影响下一跳，正中金色落点有额外金币', tapCont: '点击继续',
   },
   en: {
-    endless:'Endless', endlessStart:'Start run', endlessToday:'{n} runs left today', endlessLimit:'5 runs each day, with extra runs through invites', endlessOut:'No runs left today',
-    inviteEndless:'Invite a friend · Soon', inviteUnavailable:'Invites will be available in the WeChat mini game', inviteSuccess:'Invite accepted. +1 endless run',
+    endless:'Endless', endlessStart:'Start run', endlessToday:'{n} runs left today', endlessLimit:'{n} daily runs', endlessOut:'No runs left today',
+    shareEndless:'Share game · +{n} runs', shareCount:'Shares today {n}/{max}', shareLimit:'All share rewards claimed',
+    shareMessage:'Play Slice Flip! How far can you land?', shareSuccess:'Share complete. +{n} runs', shareFailed:'Share incomplete. Please try again',
+    shareUnsupported:'Open in a browser with system sharing to earn runs', copyShare:'Copy share link', shareCopied:'Share link copied', shareSelect:'Select and copy this link',
     endlessPad:'Pillar {n}', endlessOrigin:'Start', endlessBest:'Farthest', endlessResult:'Run over', endlessEarned:'Run earnings', cashOut:'End and collect', backEndless:'Play again',
     potionEffect:'Revive nearby once per run, in addition to the ad revive', potionRevive:'Use revive potion', finishReward:'Finish bonus', collected:'Course coins',
     playStats:'Anonymous playtest stats',special:'Power-ups',regular:'Loadout',oneSpecial:'One use per run',usePower:'Use',adUse:'Ad · unavailable',powerBack:'Back to game',rushEffect:'Double coins for 6 seconds',tripleEffect:'Two mid-air jumps per launch for 7 seconds',rainEffect:'Five extra blades per descent for 5 seconds',allGear:'Collection',fullPreview:'Preview',notOwned:'Not owned',retryGear:'Equip & retry',briefRevive:'Keep your coins. Return to your last pillar.',briefSpent:'Revive used',doubleLabel:'Double · unavailable',reviveLabel:'Revive with ad',pickKit:'Loadout',adOne:'Ad · unavailable',sfxShort:'Sound',musicShort:'Music',vibShort:'Haptics',sample:'Test cut', material:'Test material', trialKit:'Carry one · Unlimited in trial', previousGear:'Previous weapon', nextGear:'Next weapon', trial:'Trial', armory:'Armory', supplies:'Supplies', dayTitle:'Daily check-in', claim:'Claim today', claimed:'Claimed today', nextPrize:'Check-in reward', dayN:'Day {n}', take:'Carry', carried:'Carried', unequipItem:'Remove', stock:'Stock', adUnit:'Ad +1', coinUnit:'Buy +1', dailyWon:'Received', received:'Claimed', rankPrice:'List price', free:'Starter blade', training:'Tutorial', challenge:'Trial', challengeName:'Narrow Spires', normalGear:'Original handling', silverGear:'Steadier launch', frostGear:'Steady grip · Material shards', starGear:'Firm grip · Impact waves', crownGear:'25% slice crit · Double coins', tipHint:'Land on the tip to stick', leanHint:'A tilted landing changes your next jump', stoneEffect:'Steadies the jump after an angled landing', featherEffect:'A higher air tap clears wider gaps', gildEffect:'Earn 25% more slice coins this run', onePerRun:'Carry one item per run', current:'Run item', dailyDays:'Check-ins', adFail:'Watch ad · Revive nearby', retryRun:'Try again', fallen:'Blade slipped', missed:'Missed the pillar', spiked:'Hit the spikes', reviveNote:'Keep your run coins and return to your last pillar', reviveSpent:'Revive used this run', adDouble:'Watch ad · Double coins', doubled:'Double coins claimed', income:'Run earnings', critical:'Crit', critBonus:'Critical bonus', itemBonus:'Item bonus', rewardUnavailable:'Reward not claimed', changeGear:'Change gear', retryWithGear:'Retry with this gear', ownedQty:'×{n}', chooseGift:'Buy a supply', itemReady:'Now carrying', dayExtra:'coins', soundPreview:'Preview sound', trialGear:'All gear available in trial', supplyAd:'Watch ad to claim', kitLabel:'Supply', shopPrice:'Price', plainRetry:'Retry', checkpointShort:'Marker',
@@ -4332,7 +4350,10 @@ function saveLoad() {
 }
 function saveWrite() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(SAVE)); } catch (e) { /* ignore */ } }
 
-const ENDLESS_DAILY_LIMIT=5;
+const ENDLESS_DAILY_LIMIT=3;
+const ENDLESS_SHARE_REWARD=2;
+const ENDLESS_DAILY_SHARE_LIMIT=3;
+const SHARE_GAME_URL='https://cxcboss.github.io/spinning-knife/';
 const ENDLESS_QUOTA_KEY=SAVE_KEY+'.endless-quota';
 let endlessQuotaCache=null;
 
@@ -4342,12 +4363,12 @@ function endlessQuota(today=calendarDay()){
     const raw=localStorage.getItem(ENDLESS_QUOTA_KEY);
     if(raw)quota=JSON.parse(raw);
   }catch{/* Local in-memory fallback when storage is unavailable. */}
-  if(!Number.isInteger(quota?.day)||quota.day<today)return {day:today,started:0,receipts:[]};
-  const receipts=Array.isArray(quota.receipts)?[...new Set(quota.receipts.filter(id=>typeof id==='string'&&id.length<=128))]:[];
-  const started=Number.isSafeInteger(quota.started)?clamp(quota.started,0,ENDLESS_DAILY_LIMIT+receipts.length):0;
-  return {day:quota.day,started,receipts};
+  if(!Number.isInteger(quota?.day)||quota.day<today)return {day:today,started:0,shares:[]};
+  const shares=Array.isArray(quota.shares)?[...new Set(quota.shares.filter(validShareId))].slice(0,ENDLESS_DAILY_SHARE_LIMIT):[];
+  return {day:quota.day,started:natural(quota.started),shares};
 }
-const endlessRemaining = (quota=endlessQuota()) => ENDLESS_DAILY_LIMIT+quota.receipts.length-quota.started;
+const validShareId = id => typeof id==='string'&&/^[\w.-]{1,128}$/.test(id);
+const endlessRemaining = (quota=endlessQuota()) => Math.max(0,ENDLESS_DAILY_LIMIT+ENDLESS_SHARE_REWARD*quota.shares.length-quota.started);
 const endlessPosition = n => n?tr('endlessPad',{n}):tr('endlessOrigin');
 
 function saveEndlessQuota(quota){
@@ -4359,14 +4380,22 @@ function withEndlessQuota(update){
   return locks?locks.request(ENDLESS_QUOTA_KEY,update):update();
 }
 
-// Replace share() in the WeChat host. It must return a server-verified {day, id}
-// for a friend's successful acceptance, never the share-sheet completion callback.
-const endlessInvitePlatform={async share(){return null;}};
-function grantEndlessInvite(receipt,day=calendarDay()){
-  if(receipt?.day!==day||typeof receipt.id!=='string'||!/^[\w.-]{1,128}$/.test(receipt.id))return false;
+// The mini-game host can replace this adapter with its own share flow and completion receipt.
+const endlessSharePlatform={
+  supports(data){
+    const nav=globalThis.navigator;
+    return typeof nav?.share==='function'&&(!nav.canShare||nav.canShare(data));
+  },
+  async share(data){
+    await navigator.share(data);
+    return {day:calendarDay(),id:globalThis.crypto?.randomUUID?.()??Date.now()+'-'+newEndlessSeed()};
+  }
+};
+function grantEndlessShare(receipt,day=calendarDay()){
+  if(receipt?.day!==day||!validShareId(receipt.id))return false;
   const quota=endlessQuota(day);
-  if(quota.day!==day||quota.receipts.includes(receipt.id))return false;
-  quota.receipts.push(receipt.id);
+  if(quota.day!==day||quota.shares.length>=ENDLESS_DAILY_SHARE_LIMIT||quota.shares.includes(receipt.id))return false;
+  quota.shares.push(receipt.id);
   saveEndlessQuota(quota);
   return true;
 }
@@ -4386,40 +4415,53 @@ function bankEndlessReceipt(){
 }
 
 /* ---------------- icons ---------------- */
-const ICON = {
-  endless:'<svg viewBox="0 0 24 24"><path d="M7 7c2.3 0 3.7 1.5 5 3 1.3-1.5 2.7-3 5-3a5 5 0 0 1 0 10c-2.3 0-3.7-1.5-5-3-1.3 1.5-2.7 3-5 3A5 5 0 0 1 7 7Zm0 2.4a2.6 2.6 0 1 0 0 5.2c1.4 0 2.6-1.3 3.5-2.6C9.6 10.7 8.4 9.4 7 9.4Zm10 0c-1.4 0-2.6 1.3-3.5 2.6.9 1.3 2.1 2.6 3.5 2.6a2.6 2.6 0 0 0 0-5.2Z"/></svg>',
-  boost:'<svg viewBox="0 0 24 24"><path d="m4 15 8-7 8 7-2.5 2.5L12 12.6l-5.5 4.9zm2-7 6-5 6 5-2 2-4-3.1L8 10z"/></svg>',
-  shower:'<svg viewBox="0 0 24 24"><path d="m10 2 3 .5-1 5-1.8 3.8-.7-4.2zM4.4 7l2.5 1-1.3 5.7-2.5 4.1.1-5.1zm12.7.4 2.8.8-2.6 8.5-3.2 5.1.6-6.1z"/></svg>',
-  pause: '<svg viewBox="0 0 24 24"><rect x="6" y="5" width="4.2" height="14" rx="1.6"/><rect x="13.8" y="5" width="4.2" height="14" rx="1.6"/></svg>',
-  play: '<svg viewBox="0 0 24 24"><path d="M8 4.8v14.4a1 1 0 0 0 1.5.9l11-7.2a1 1 0 0 0 0-1.7l-11-7.2A1 1 0 0 0 8 4.8z"/></svg>',
-  home: '<svg viewBox="0 0 24 24"><path d="M12 3.2 2.6 11.6a.8.8 0 0 0 .5 1.4H5v7a1 1 0 0 0 1 1h3.6v-5.2h4.8V20h3.6a1 1 0 0 0 1-1v-7h1.9a.8.8 0 0 0 .5-1.4z"/></svg>',
-  retry: '<svg viewBox="0 0 24 24"><path d="M12 4.5V1.8a.5.5 0 0 0-.8-.4L6.6 5a.5.5 0 0 0 0 .8l4.6 3.6a.5.5 0 0 0 .8-.4V6.6A5.9 5.9 0 1 1 6 12.4H3.2A8.8 8.8 0 1 0 12 4.5z"/></svg>',
-  levels: '<svg viewBox="0 0 24 24"><rect x="3" y="3" width="7.4" height="7.4" rx="2.2"/><rect x="13.6" y="3" width="7.4" height="7.4" rx="2.2"/><rect x="3" y="13.6" width="7.4" height="7.4" rx="2.2"/><rect x="13.6" y="13.6" width="7.4" height="7.4" rx="2.2"/></svg>',
-  knife: '<svg viewBox="0 0 24 24"><g transform="rotate(-42 12 12)"><rect x="1.4" y="10.2" width="8.6" height="3.6" rx="1.8"/><path d="M10.8 9.3h8.4q3.3 0 3.6 2.7-.3 2.7-3.6 2.7h-8.4z"/></g></svg>',
-  gear: '<svg viewBox="0 0 24 24"><path d="M19.4 13a7.7 7.7 0 0 0 0-2l2.1-1.6a.5.5 0 0 0 .1-.6l-2-3.5a.5.5 0 0 0-.6-.2l-2.5 1a7.4 7.4 0 0 0-1.7-1l-.4-2.6a.5.5 0 0 0-.5-.4h-4a.5.5 0 0 0-.5.4l-.4 2.6a7.4 7.4 0 0 0-1.7 1l-2.5-1a.5.5 0 0 0-.6.2l-2 3.5a.5.5 0 0 0 .1.6L4.6 11a7.7 7.7 0 0 0 0 2l-2.1 1.6a.5.5 0 0 0-.1.6l2 3.5c.1.2.4.3.6.2l2.5-1c.5.4 1.1.7 1.7 1l.4 2.6c0 .2.3.4.5.4h4c.2 0 .5-.2.5-.4l.4-2.6c.6-.3 1.2-.6 1.7-1l2.5 1c.2.1.5 0 .6-.2l2-3.5a.5.5 0 0 0-.1-.6zM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/></svg>',
-  lock: '<svg viewBox="0 0 24 24"><path d="M17 9V7a5 5 0 0 0-10 0v2H5.8A1.8 1.8 0 0 0 4 10.8v9.4A1.8 1.8 0 0 0 5.8 22h12.4a1.8 1.8 0 0 0 1.8-1.8v-9.4A1.8 1.8 0 0 0 18.2 9zm-8-2a3 3 0 0 1 6 0v2H9z"/></svg>',
-  star: '<svg viewBox="0 0 24 24"><path d="M12 2.2l2.9 6.2 6.8.8-5 4.7 1.3 6.7L12 17.1 6 20.6l1.3-6.7-5-4.7 6.8-.8z"/></svg>',
-  back: '<svg viewBox="0 0 24 24"><path d="M15.4 3.6a1.3 1.3 0 0 1 0 1.8L9.2 12l6.2 6.6a1.3 1.3 0 1 1-1.9 1.8l-7-7.5a1.3 1.3 0 0 1 0-1.8l7-7.5a1.3 1.3 0 0 1 1.9 0z"/></svg>',
-  next: '<svg viewBox="0 0 24 24"><path d="M8.6 3.6a1.3 1.3 0 0 0 0 1.8l6.2 6.6-6.2 6.6a1.3 1.3 0 1 0 1.9 1.8l7-7.5a1.3 1.3 0 0 0 0-1.8l-7-7.5a1.3 1.3 0 0 0-1.9 0z"/></svg>',
-  check: '<svg viewBox="0 0 24 24"><path d="M9.2 17.6 4.4 12.8a1.3 1.3 0 1 1 1.8-1.8l3 3 8.6-8.6a1.3 1.3 0 0 1 1.8 1.8z"/></svg>',
+/* One 24-unit icon grid, with matching strokes and optical insets. */
+const ICON_PATHS={
+  endless:'M12 12c-2.1-2.7-3.4-4-5.5-4a4 4 0 1 0 0 8c2.1 0 3.4-1.3 5.5-4s3.4-4 5.5-4a4 4 0 1 1 0 8c-2.1 0-3.4-1.3-5.5-4Z',
+  levels:'M4 19v-5h4.5v5m1.5 0v-9h4.5v9m1.5 0V5h4.5v14M3 19h18',
+  grid:'M6 4.5h2.5A1.5 1.5 0 0 1 10 6v2.5A1.5 1.5 0 0 1 8.5 10H6a1.5 1.5 0 0 1-1.5-1.5V6A1.5 1.5 0 0 1 6 4.5Zm9.5 0H18A1.5 1.5 0 0 1 19.5 6v2.5A1.5 1.5 0 0 1 18 10h-2.5A1.5 1.5 0 0 1 14 8.5V6a1.5 1.5 0 0 1 1.5-1.5ZM6 14h2.5a1.5 1.5 0 0 1 1.5 1.5V18a1.5 1.5 0 0 1-1.5 1.5H6A1.5 1.5 0 0 1 4.5 18v-2.5A1.5 1.5 0 0 1 6 14Zm9.5 0H18a1.5 1.5 0 0 1 1.5 1.5V18a1.5 1.5 0 0 1-1.5 1.5h-2.5A1.5 1.5 0 0 1 14 18v-2.5a1.5 1.5 0 0 1 1.5-1.5Z',
+  knife:'M8.3 12.7l7.1-7.6c1.6-1.7 3.5-2.1 5.6-1.7-.5 3.4-1.8 6.3-4.1 8.5l-4.6 4.4-4-3.6Zm0 0-4.5 4.7a2 2 0 0 0 2.9 2.8l5.6-3.9m-1.9-1.7 6.6-6.4',
+  pack:'M8.5 6.5V5A1.5 1.5 0 0 1 10 3.5h4A1.5 1.5 0 0 1 15.5 5v1.5M6 6.5h12A2.5 2.5 0 0 1 20.5 9v9A2.5 2.5 0 0 1 18 20.5H6A2.5 2.5 0 0 1 3.5 18V9A2.5 2.5 0 0 1 6 6.5ZM4 12h16m-9.5 0v2h3v-2',
+  gear:'m10 3.5-.6 2.1-1.6.9-2.1-.5-2 3.5 1.5 1.6v1.8l-1.5 1.6 2 3.5 2.1-.5 1.6.9.6 2.1h4l.6-2.1 1.6-.9 2.1.5 2-3.5-1.5-1.6v-1.8l1.5-1.6-2-3.5-2.1.5-1.6-.9-.6-2.1h-4ZM12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z',
+  play:'M8 5.5a.7.7 0 0 1 1.1-.6l10 6.5a.7.7 0 0 1 0 1.2l-10 6.5a.7.7 0 0 1-1.1-.6v-13Z',
+  pause:'M8 5v14m8-14v14',
+  home:'m3.5 10.5 8.5-7 8.5 7m-15-1v10.5H10v-5.5h4v5.5h4.5V9.5',
+  retry:'M4 9a8 8 0 1 1-.2 6m.2-6V4m0 5h5',
+  lock:'M8 10V7.4a4 4 0 1 1 8 0V10m-9.5 0h11A1.5 1.5 0 0 1 19 11.5v7a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 5 18.5v-7A1.5 1.5 0 0 1 6.5 10Zm5.5 4v2',
+  star:'M12 3.5l2.6 5.2 5.8.8-4.2 4.1 1 5.8-5.2-2.8-5.2 2.8 1-5.8-4.2-4.1 5.8-.8 2.6-5.2Z',
+  back:'m15 5-7 7 7 7',
+  next:'m9 5 7 7-7 7',
+  check:'m5 12 4.5 4.5L19 7',
+  calendar:'M7 3.5v4m10-4v4M4 9.5h16M5.5 5.5h13A1.5 1.5 0 0 1 20 7v12a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 19V7a1.5 1.5 0 0 1 1.5-1.5Zm3 8h3m2 3.5h2',
+  coins:'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm0 5 4 4-4 4-4-4 4-4Z',
+  coinMark:'m12 4 8 8-8 8-8-8 8-8Z',
+  trophy:'M8 4.5h8V10a4 4 0 0 1-8 0V4.5Zm0 2H4V8a3.5 3.5 0 0 0 3.5 3.5H8m8-5h4V8a3.5 3.5 0 0 1-3.5 3.5H16m-4 2.5v5.5m-4 0h8',
+  ad:'M5.5 5.5h13A1.5 1.5 0 0 1 20 7v10a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 17V7a1.5 1.5 0 0 1 1.5-1.5Zm5 3 5 3.5-5 3.5v-7Z',
+  share:'M12 15V3.5M8 7.5l4-4 4 4M8 10H6a2 2 0 0 0-2 2v6.5a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V12a2 2 0 0 0-2-2h-2',
+  copy:'M10 8h8a1.5 1.5 0 0 1 1.5 1.5v9A1.5 1.5 0 0 1 18 20h-8a1.5 1.5 0 0 1-1.5-1.5v-9A1.5 1.5 0 0 1 10 8ZM15.5 4H6a1.5 1.5 0 0 0-1.5 1.5v10',
+  potion:'M9 4h6m-5.5 0v4l-3.7 4.4a4 4 0 0 0 3 6.6h6.4a4 4 0 0 0 3-6.6L14.5 8V4M12 11v5m-2.5-2.5h5',
+  speaker:'M4 9h4l4-4v14l-4-4H4V9Zm11.5.2a4 4 0 0 1 0 5.6m2.6-8.2a7.6 7.6 0 0 1 0 10.8',
+  music:'M9 17V6.5l10-2V15M9 17a2.6 2.2 0 1 1-5.2 0 2.6 2.2 0 0 1 5.2 0Zm10-2a2.6 2.2 0 1 1-5.2 0 2.6 2.2 0 0 1 5.2 0Z',
+  vibration:'M9 4.5h6A1.5 1.5 0 0 1 16.5 6v12a1.5 1.5 0 0 1-1.5 1.5H9A1.5 1.5 0 0 1 7.5 18V6A1.5 1.5 0 0 1 9 4.5Zm2 12.5h2M4 8.5a7.5 7.5 0 0 0 0 7m16-7a7.5 7.5 0 0 1 0 7',
+  lang:'M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17Zm0 0c-2.1 2.1-3.15 5-3.15 8.5s1.05 6.4 3.15 8.5c2.1-2.1 3.15-5 3.15-8.5S14.1 5.6 12 3.5ZM4 12h16',
+  quality:'M5.5 4.5h13A1.5 1.5 0 0 1 20 6v9a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 15V6a1.5 1.5 0 0 1 1.5-1.5ZM12 16.5v3m-3.5 0h7M12 7v7M8.5 10.5h7',
+  chart:'M4 4v15.5h16M8 16v-3m4 3V9m4 7V6',
+  boost:'m5 11 7-6 7 6m-14 6 7-6 7 6',
+  shower:'M12 4v15m-2.5-2.5L12 19l2.5-2.5M6 6.5v9m-2-2 2 2 2-2m10-7v9m-2-2 2 2 2-2',
+  tap:'M9 12V9.5a1.7 1.7 0 0 1 3.4 0v4.1l1.1-.5a1.2 1.2 0 0 1 1.7.8l.9-.05a1.4 1.4 0 0 1 1.4 1.3v2.2a3.8 3.8 0 0 1-3.8 3.8h-2.3a3.8 3.8 0 0 1-2.9-1.3L5 15.8a1.45 1.45 0 0 1 2.1-2l1.9 1.8V12Zm-1.5-6.6L6 3.9m4.7 0V2m3.2 3.4 1.5-1.5'
 };
-const STROKES={
-  pack:'M5 10V8q0-3 4-3h6q4 0 4 3v10q0 2-2 2H7q-2 0-2-2z M9 5V3h6v2 M5 11h14m-9 0v3h4v-3',
-  ad:'M4 6h16v12H4z M10 9l5 3-5 3z',coins:'M4 9c0-5 15-5 15 0s-15 5-15 0zm0 0v5c0 5 15 5 15 0V9 M8 18c3 4 12 2 12-2',
-  calendar:'M4 6h16v14H4z M4 10h16 M8 4v4m8-4v4 M8 14h2m3 0h2',speaker:'M4 10h4l5-4v12l-5-4H4z M16 9q4 3 0 6m2-9q7 6 0 12',
-  music:'M9 17V6l10-2v11 M9 17q-1 5-5 3-3-3 3-4m12-1q-1 5-5 3-3-3 3-4',vibration:'M8 5h8v14H8z M5 8q-3 4 0 8m14-8q3 4 0 8',
-  tap:'M9 12V5q2-3 3 0v6l2-1 4 2q2 1 1 4l-2 4h-6l-6-7q0-3 3-1l2 2',trophy:'M7 4h10v5q0 6-5 6t-5-6z M7 6H3q0 5 5 6m9-6h4q0 5-5 6m-4 3v4m-4 1h8',
-  lang:'M3 7h11M8 4v3m4 0q-1 6-8 10m2-7q2 4 7 6m0 4 4-11 4 11m-7-3h6'
-};
-function glyph(name){
-  const art=ICON[name]||(STROKES[name]?'<svg viewBox="0 0 24 24"><path d="'+STROKES[name]+'" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>':'');
-  return '<i aria-hidden="true" class="glyph original">'+art+'</i>';
+function glyph(name,classes=''){
+  const path=ICON_PATHS[name];
+  if(!path)return '';
+  return '<span class="glyph'+(classes?' '+classes:'')+'" aria-hidden="true">'+
+    '<svg viewBox="0 0 24 24" focusable="false"><path d="'+path+'"/></svg></span>';
 }
-const starSvg = (cls) => '<i class="st ' + (cls || '') + '">' + ICON.star + '</i>';
+const iconLabel=(icon,label)=>glyph(icon)+'<span class="ui-label">'+label+'</span>';
+const starSvg=state=>glyph('star',state?'st '+state:'st');
 
 /* ---------------- tiny DOM helpers ---------------- */
 const $ = (s, r) => (r || document).querySelector(s);
-const UI = { screen: 'home', cur: 0, demoIdx: 0, shopIdx: 0, shopT: 0, resetArm: 0, stage: null, w: 360, h: 640, q: 1, fps: 60, slow: 0, taps: 0, view: 0, shopReturn: 'home', settingsReturn: 'home', shopFromGrid:false, shopScroll:0, calendar: -1, endlessDay:-1, endlessStarting:false, endlessInviting:false, sampleIndex:-1, supplyIndex:0, modelPressed:false, pressBlend:0, sample:null, sampleFX:[] };
+const UI = { screen: 'home', cur: 0, demoIdx: 0, shopIdx: 0, shopT: 0, resetArm: 0, stage: null, w: 360, h: 640, q: 1, fps: 60, slow: 0, taps: 0, view: 0, shopReturn: 'home', settingsReturn: 'home', shopFromGrid:false, shopScroll:0, calendar: -1, endlessDay:-1, endlessStarting:false, endlessSharing:false, sampleIndex:-1, supplyIndex:0, modelPressed:false, pressBlend:0, sample:null, sampleFX:[] };
 let _hudCoins = -1, _hudProg = -1, _hintK = null;
 const SCREENS=['home','levels','shop','settings','pause','result','fail','supplies','powers','endless','endless-result'];
 
@@ -4434,7 +4476,8 @@ function uiRenderAll() {
   renderHud(); renderHome(); renderLevels(); renderShop(); renderSettings(); renderPause();
   document.documentElement.lang = LANG === 'zh' ? 'zh-CN' : 'en'; document.title = LANG === 'zh' ? '飞刀切切切 · SLICE FLIP' : 'SLICE FLIP · 飞刀切切切';
 }
-const coinPill = (id) => '<div class="pill coin account"><span class="coin-token" aria-hidden="true">◇</span><b id="' + id + '">' + walletText() + '</b>' + '</div>';
+const coinMark=()=>'<span class="coin-token">'+glyph('coinMark')+'</span>';
+const coinPill=(id)=>'<div class="pill coin account">'+coinMark()+'<b id="'+id+'">'+walletText()+'</b></div>';
 const nextLevelIdx = () => Math.min(SAVE.unlocked, NUM_LEVELS) - 1;
 const isOpen = i => i >= 0 && i < NUM_LEVELS && i < SAVE.unlocked;
 const runCaption = () => G.endless?tr('endless'):levelCaption(UI.cur);
@@ -4443,33 +4486,42 @@ const levelCaption = i => tr('level',{n:i+1})+(i===0?' · '+tr('training'):i===9
 function renderHud() {
   _hudCoins = -1; _hudProg = -1; _hintK = null;
   $('#hud').innerHTML =
-    '<button class="round pausebtn" data-act="pause" aria-label="' + (LANG==='zh'?'暂停':'Pause') + '">' + ICON.pause + '</button>' +
-    '<div class="pill coin hudcoin"><span class="coin-token" aria-hidden="true">◇</span><b id="hud-coins">0</b></div>' +
+    '<button class="round pausebtn" data-act="pause" aria-label="'+(LANG==='zh'?'暂停':'Pause')+'">'+glyph('pause')+'</button>'+
+    '<div class="pill coin hudcoin">'+coinMark()+'<b id="hud-coins">0</b></div>'+
     '<div id="live-powers"></div><button class="hud-pack" id="power-button" data-act="powers" aria-label="'+tr('special')+'">'+glyph('pack')+'<small>1</small></button>' +
     '<div class="lvlbar"><div class="lvlname" id="hud-lvl">'+runCaption()+'</div><div class="bar"><i id="hud-prog"></i></div><div class="endless-steps" id="hud-distance"></div></div>' +
-    '<div class="hint hidden" id="hint"><div class="hand">👆</div><div class="htxt" id="hint-txt"></div></div>';
+    '<div class="hint hidden" id="hint"><div class="hand">'+glyph('tap')+'</div><div class="htxt" id="hint-txt"></div></div>';
 }
 function renderHome() {
   const n=nextLevelIdx();UI.endlessDay=calendarDay();
+  const nav=[['levels','levels','levels'],['shop','knife','armory'],['supplies','pack','supplies'],['settings','gear','settings']]
+    .map(([action,icon,label])=>'<button class="sq" data-act="'+action+'">'+iconLabel(icon,tr(label))+'</button>').join('');
   $('#scr-home').innerHTML =
     '<div class="toprow">' + coinPill('home-coins') + '<button class="round sm" data-act="lang" aria-label="language"><b>' + (LANG === 'zh' ? 'EN' : '中') + '</b></button></div>' +
     '<div class="logo"><div class="l1">' + tr('title1') + '</div><div class="l2">' + tr('title2') + '</div><div class="l3">' + tr('title3') + '</div></div>' +
-    '<div class="homebot"><button class="btn play big" data-act="play"><span class="pi">' + ICON.play + '</span><span class="pt">' + (SAVE.plays > 0 || n > 0 ? tr('cont') : tr('play')) + '<small>' + tr('level', { n: n + 1 }) + '</small></span></button>' +
-    '<button class="endless-entry" data-act="endless">'+glyph('endless')+'<strong>'+tr('endless')+'</strong><small>'+tr('endlessToday',{n:endlessRemaining()})+'</small></button>'+
-    '<div class="row3"><button class="sq" data-act="levels"><i>' + ICON.levels + '</i><span>' + tr('levels') + '</span></button><button class="sq" data-act="shop"><i>' + ICON.knife + '</i><span>' + tr('armory') + '</span></button><button class="sq" data-act="supplies">' + glyph('pack') + '<span>' + tr('supplies') + '</span></button><button class="sq" data-act="settings"><i>' + ICON.gear + '</i><span>' + tr('settings') + '</span></button></div></div>';
+    '<div class="homebot"><button class="btn play big" data-act="play">'+glyph('play')+'<span class="pt">' + (SAVE.plays > 0 || n > 0 ? tr('cont') : tr('play')) + '<small>' + tr('level', { n: n + 1 }) + '</small></span></button>' +
+    '<button class="endless-entry" data-act="endless">'+iconLabel('endless',tr('endless'))+'<small>'+tr('endlessToday',{n:endlessRemaining()})+'</small></button>'+
+    '<div class="row3">'+nav+'</div></div>';
 }
 function runEarnings(label,coins,details='',countId=''){
   const id=countId?' id="'+countId+'"':'';
-  return '<div class="earnings"><span>'+tr(label)+'</span><b'+id+'>'+glyph('coins')+' '+coins.toLocaleString()+'</b>'+details+'</div>';
+  return '<div class="earnings"><span>'+tr(label)+'</span><b'+id+'>'+iconLabel('coins',coins.toLocaleString())+'</b>'+details+'</div>';
 }
+const endlessShareData=()=>({title:LANG==='zh'?'飞刀切切切':'Slice Flip',text:tr('shareMessage'),url:SHARE_GAME_URL});
+
 function renderEndless(){
   UI.endlessDay=calendarDay();
-  const remaining=endlessRemaining();
+  const quota=endlessQuota(UI.endlessDay),remaining=endlessRemaining(quota);
+  const shareLimit=quota.shares.length>=ENDLESS_DAILY_SHARE_LIMIT;
+  const nativeShare=endlessSharePlatform.supports(endlessShareData());
+  const shareLabel=shareLimit?tr('shareLimit'):nativeShare?tr('shareEndless',{n:ENDLESS_SHARE_REWARD}):tr('copyShare');
   dialog('endless','endless',tr('endless'),tr('endlessToday',{n:remaining}),dialogMedal('endless'),
-    '<p>'+tr('endlessLimit')+'</p>'+
     '<div class="endless-tally">'+tr('endlessBest')+' · '+endlessPosition(SAVE.endlessBest)+'</div>'+
-    actionButton('startEndless',glyph(remaining?'play':'lock')+tr(remaining?'endlessStart':'endlessOut'),remaining?'primary':'quiet',!remaining)+
-    actionButton('inviteEndless',glyph('boost')+tr('inviteEndless'),'soft')+
+    '<div class="endless-quota"><span>'+tr('endlessLimit',{n:ENDLESS_DAILY_LIMIT})+'</span><span>'+tr('shareCount',{n:quota.shares.length,max:ENDLESS_DAILY_SHARE_LIMIT})+'</span></div>'+
+    actionButton('startEndless',tr(remaining?'endlessStart':'endlessOut'),remaining?'play':'lock',remaining?'primary':'quiet',!remaining)+
+    actionButton(nativeShare?'shareEndless':'copyEndlessLink',shareLabel,shareLimit?'check':nativeShare?'share':'copy',shareLimit?'quiet':'soft',shareLimit||UI.endlessSharing)+
+    (!nativeShare&&!shareLimit?'<p class="share-help">'+tr('shareUnsupported')+'</p>':'')+
+    '<input class="share-url hidden" aria-label="'+tr('shareSelect')+'" readonly id="endless-share-url" value="'+SHARE_GAME_URL+'">'+
     '<div class="icon-dock">'+iconLink('home','home','home')+'</div>');
 }
 async function startEndless(){
@@ -4489,19 +4541,40 @@ async function startEndless(){
     });
   }finally{UI.endlessStarting=false;}
 }
-async function inviteEndless(){
-  if(UI.screen!=='endless'||UI.endlessInviting)return false;
-  UI.endlessInviting=true;
+async function shareEndless(){
+  if(UI.screen!=='endless'||UI.endlessSharing||endlessQuota().shares.length>=ENDLESS_DAILY_SHARE_LIMIT)return false;
+  const data=endlessShareData();
+  if(!endlessSharePlatform.supports(data)){renderEndless();return false;}
+  UI.endlessSharing=true;
+  const button=$('#scr-endless [data-act=shareEndless]');
+  button?.setAttribute?.('aria-busy','true');
+  let rewarded=false,message='';
   try{
-    const receipt=await endlessInvitePlatform.share({day:calendarDay()});
-    if(!receipt){if(UI.screen==='endless')toast(tr('inviteUnavailable'));return false;}
-    const rewarded=await withEndlessQuota(()=>grantEndlessInvite(receipt));
-    if(rewarded&&UI.screen==='endless'){renderEndless();toast(tr('inviteSuccess'));}
-    return rewarded;
+    // Launch the system sheet from the click before awaiting any lock or storage work.
+    const receipt=await endlessSharePlatform.share(data);
+    if(receipt){
+      rewarded=await withEndlessQuota(()=>grantEndlessShare(receipt));
+      message=rewarded?tr('shareSuccess',{n:ENDLESS_SHARE_REWARD}):tr('shareLimit');
+    }
+  }catch(error){
+    if(error?.name!=='AbortError')message=tr('shareFailed');
+  }finally{
+    UI.endlessSharing=false;
+    refreshEndlessEntry();
+    if(message&&UI.screen==='endless')toast(message);
+  }
+  return rewarded;
+}
+async function copyEndlessLink(){
+  if(UI.screen!=='endless')return;
+  try{
+    await navigator.clipboard.writeText(SHARE_GAME_URL);
+    if(UI.screen==='endless')toast(tr('shareCopied'));
   }catch{
-    if(UI.screen==='endless')toast(tr('inviteUnavailable'));
-    return false;
-  }finally{UI.endlessInviting=false;}
+    if(UI.screen!=='endless')return;
+    const link=$('#endless-share-url');
+    link.classList.remove('hidden');link.focus();link.select();
+  }
 }
 function rememberEndlessFailure(){
   SAVE.pendingEndless={coins:G.coins,pad:G.farthest};saveWrite();
@@ -4519,7 +4592,7 @@ function finishEndless(){
 function renderEndlessResult(result){
   dialog('endless-result','endless',tr('endlessResult'),endlessPosition(result.distance),dialogMedal('trophy'),
     runEarnings('endlessEarned',result.total)+
-    actionButton('endless',glyph('endless')+tr('backEndless'))+
+    actionButton('endless',tr('backEndless'),'endless')+
     '<div class="icon-dock">'+iconLink('home','home','home',true)+'</div>');
 }
 function renderLevels() {
@@ -4529,24 +4602,25 @@ function renderLevels() {
     h += '<div class="world" style="--ac:' + T.ui + '"><div class="whead"><i class="world-mark"></i><b>' + (LANG === 'zh' ? T.zh : T.en) + '</b></div><div class="wrow">';
     for (let k = 0; k < 5; k++) {
       const i = w * 5 + k, open = isOpen(i), s = SAVE.stars[i];
-      h += '<button class="lv ' + (open ? '' : 'lock') + (i === 9 ? ' gate' : '') + (open && i === nextLevelIdx() ? ' cur' : '') + '" data-act="lvl" data-i="' + i + '" aria-label="'+tr('level',{n:i+1})+(open?'':' · '+tr('locked'))+'"'+(open && i===nextLevelIdx()?' aria-current="step"':'')+'>' + (open ? '<b>' + (i + 1) + '</b>' + (i === 9 ? '<small>' + tr('challenge') + '</small>' : '<span class="ss">' + starSvg(s >= 1 ? 'on' : '') + starSvg(s >= 2 ? 'on' : '') + starSvg(s >= 3 ? 'on' : '') + '</span>') : '<b>'+(i+1)+'</b><i class="lk">' + ICON.lock + '</i>') + '</button>';
+      h += '<button class="lv ' + (open ? '' : 'lock') + (i === 9 ? ' gate' : '') + (open && i === nextLevelIdx() ? ' cur' : '') + '" data-act="lvl" data-i="' + i + '" aria-label="'+tr('level',{n:i+1})+(open?'':' · '+tr('locked'))+'"'+(open && i===nextLevelIdx()?' aria-current="step"':'')+'>' + (open ? '<b>' + (i + 1) + '</b>' + (i === 9 ? '<small>' + tr('challenge') + '</small>' : '<span class="ss">' + starSvg(s >= 1 ? 'on' : '') + starSvg(s >= 2 ? 'on' : '') + starSvg(s >= 3 ? 'on' : '') + '</span>') : '<b>'+(i+1)+'</b>'+glyph('lock','lk')) + '</button>';
     }
     h += '</div></div>';
   }
   $('#scr-levels').innerHTML = h + '</div></div>';
 }
 function navButton(action, icon, label) {
-  return '<button class="round" data-act="' + action + '" aria-label="' + tr(label) + '">' + ICON[icon] + '</button>';
+  return '<button class="round" data-act="' + action + '" aria-label="' + tr(label) + '">'+glyph(icon)+'</button>';
 }
-function actionButton(action, label, kind = 'primary', disabled = false) {
-  return '<button class="action ' + kind + '" data-act="' + action + '"' + (disabled ? ' aria-disabled="true"' : '') + '>' + label + '</button>';
+function actionButton(action,label,icon,kind='primary',disabled=false){
+  return '<button class="action '+kind+'" data-act="'+action+'"'+(disabled?' aria-disabled="true"':'')+'>'+
+    iconLabel(icon,label)+'</button>';
 }
 function shopHead(action, title, id) {
   return '<div class="topbar">' + navButton(action,'back','back') + '<div class="ttl">' + tr(title) + '</div>' + coinPill(id) + '</div>';
 }
 function iconLink(action,icon,label,showLabel=false) {
   const name=tr(label);
-  return '<button class="icon-link'+(showLabel?' wide':'')+'" data-act="'+action+'" title="'+name+'" aria-label="'+name+'">'+glyph(icon)+(showLabel?name:'')+'</button>';
+  return '<button class="icon-link'+(showLabel?' wide':'')+'" data-act="'+action+'" title="'+name+'" aria-label="'+name+'">'+(showLabel?iconLabel(icon,name):glyph(icon))+'</button>';
 }
 function dialog(screen,tone,title,eyebrow,emblem,body,attrs='') {
   const root=$('#scr-'+screen),heading='title-'+screen;
@@ -4559,7 +4633,7 @@ function dialog(screen,tone,title,eyebrow,emblem,body,attrs='') {
 }
 function dialogMedal(icon) { return '<div class="dialog-medal">'+glyph(icon)+'</div>'; }
 function rewardBtn(action,key,aria,disabled=false) {
-  return '<button class="action '+(disabled?'quiet':'primary')+'" data-act="'+action+'" aria-label="'+tr(aria)+'"'+(disabled?' aria-disabled="true"':'')+'>'+glyph(key==='doubled'?'check':'ad')+tr(key)+'</button>';
+  return '<button class="action '+(disabled?'quiet':'primary')+'" data-act="'+action+'" aria-label="'+tr(aria)+'"'+(disabled?' aria-disabled="true"':'')+'>'+iconLabel(key==='doubled'?'check':'ad',tr(key))+'</button>';
 }
 function selectWeapon(index){
   UI.shopIdx=index;UI.shopGrid=false;UI.shopT=0;UI.sample=null;UI.sampleFX.length=0;
@@ -4569,22 +4643,23 @@ function renderShop() {
   const k=KNIVES[UI.shopIdx],eq=SAVE.knife===k.id,retry=UI.shopReturn==='fail',grid=UI.shopGrid;
   const toggle=grid?tr('fullPreview'):tr('allGear');
   const header='<div class="topbar">'+navButton('shopBack','back','back')+'<div class="ttl">'+tr(grid?'allGear':'armory')+
-    '</div><div class="armory-wallet">'+coinPill('armory-coins')+'<button class="view-switch" data-act="shopView" title="'+toggle+'" aria-label="'+toggle+'">'+glyph(grid?'knife':'levels')+'</button></div></div>';
+    '</div><div class="armory-wallet">'+coinPill('armory-coins')+'<button class="view-switch" data-act="shopView" title="'+toggle+'" aria-label="'+toggle+'">'+glyph(grid?'knife':'grid')+'</button></div></div>';
   const root=$('#scr-shop');
   root.classList.toggle('catalog',!!grid);
   if(grid){
     root.innerHTML=header+'<div class="scroll gear-scroll"><div class="gear-grid">'+KNIVES.map((v,i)=>{
       const owned=canEquip(v.id),status=tr(v.id===SAVE.knife?'equipped':owned?'owned':'notOwned');
       return '<button class="gear-cell '+(v.id===k.id?'current':'')+'" data-act="pickGear" data-owned="'+owned+'" data-i="'+i+'"><canvas aria-hidden="true" data-knife="'+v.id+'" width="160" height="88"></canvas>'+
-        '<b>'+byLanguage(v)+'</b><span class="catalog-price">'+glyph('coins')+v.price.toLocaleString()+'</span><small>'+glyph(owned?'check':'lock')+status+'</small></button>';
+        '<b>'+byLanguage(v)+'</b><span class="catalog-price">'+iconLabel('coins',v.price.toLocaleString())+'</span><small>'+iconLabel(owned?'check':'lock',status)+'</small></button>';
     }).join('')+'</div></div>';
     drawModelCards('#scr-shop',true);
     $('.gear-scroll',root).scrollTop=UI.shopScroll;
     return;
   }
   const owned=canEquip(k.id),cmd=owned?(retry?'equipRetry':'equip'):(retry?'buyRetry':'buy');
-  const primary=actionButton(cmd,glyph(owned?(eq?'check':'knife'):'coins')+
-    (owned?tr(retry?'retryGear':eq?'equipped':'equip'):tr('buy')+' '+k.price.toLocaleString()),owned&&eq&&!retry?'quiet':'primary',owned&&eq&&!retry);
+  const label=owned?tr(retry?'retryGear':eq?'equipped':'equip'):tr('buy')+' '+k.price.toLocaleString();
+  const equipped=owned&&eq&&!retry;
+  const primary=actionButton(cmd,label,owned?(eq?'check':'knife'):'coins',equipped?'quiet':'primary',equipped);
   root.innerHTML=header+'<button class="weapon-test" data-act="sampleRandom" aria-label="'+tr('sample')+'"></button>'+
     '<section class="sheet preview-footer"><div class="name-pager">'+navButton('kprev','back','previousGear')+'<h2>'+byLanguage(k)+'</h2>'+
     navButton('knext','next','nextGear')+'</div>'+primary+'</section>';
@@ -4740,16 +4815,16 @@ function renderSupplies() {
       glyph(done?'check':d.coins?'coins':'pack')+'<small>'+ (j+1) +'</small></span>';
   }).join('');
   const choices=catalog.map((item,j)=>'<button data-act="selectSupply" data-i="'+j+'" class="supply-tile '+(j===UI.supplyIndex?'chosen':'')+'" style="--item:'+item.color+'" aria-pressed="'+(j===UI.supplyIndex)+'">'+
-    itemModel(item.id)+'<b>'+byLanguage(item)+'</b><small>'+'×'+SAVE.stock[item.id]+'</small>'+(SAVE.loadout===item.id?'<i class="kit-check">✓</i>':'')+'</button>').join('');
+    itemModel(item.id)+'<b>'+byLanguage(item)+'</b><small>'+'×'+SAVE.stock[item.id]+'</small>'+(SAVE.loadout===item.id?glyph('check','kit-check'):'')+'</button>').join('');
   $('#scr-supplies').innerHTML=shopHead('home','supplies','supply-coins')+'<div class="scroll supply-scroll"><section class="sheet supply-sheet">'+
-    '<h2 class="section-name">'+glyph('calendar')+tr('dayTitle')+'</h2><div class="days">'+days+'</div><p class="daily-prize">'+prizeName(DAILY[i])+'</p>'+
-    actionButton('daily',glyph(claimed?'check':'calendar')+tr(claimed?'claimed':'claim'),claimed?'quiet':'primary',claimed)+
+    '<h2 class="section-name">'+iconLabel('calendar',tr('dayTitle'))+'</h2><div class="days">'+days+'</div><p class="daily-prize">'+prizeName(DAILY[i])+'</p>'+
+    actionButton('daily',tr(claimed?'claimed':'claim'),claimed?'check':'calendar',claimed?'quiet':'primary',claimed)+
     '</section><section class="sheet supply-sheet"><div class="supply-tabs">'+[false,true].map(special=>
       '<button data-act="supplyTab" data-kind="'+(special?'special':'regular')+'" aria-pressed="'+(special===UI.supplySpecial)+'">'+tr(special?'special':'regular')+'</button>').join('')+'</div>'+
     '<div class="supply-tiles'+(UI.supplySpecial?' special-grid':'')+'">'+choices+'</div><div class="selected-kit"><p>'+tr(selected.text)+'</p>'+
-    (UI.supplySpecial?'':'<button class="carry '+(equipped?'selected':'')+'" aria-pressed="'+equipped+'" data-act="carry" data-item="'+selected.id+'">'+(equipped?'✓ ':'')+tr(equipped?'carried':'take')+'</button>')+'</div>'+
-    '<div class="kit-actions"><button data-act="adSupply" aria-disabled="true" data-item="'+selected.id+'">'+glyph('ad')+tr('adOne')+'</button>'+
-    '<button data-act="buySupply" data-item="'+selected.id+'" aria-label="'+tr('buy')+' '+byLanguage(selected)+' '+selected.price+'">'+glyph('coins')+selected.price+' · +1</button></div></section></div>';
+    (UI.supplySpecial?'':'<button class="carry '+(equipped?'selected':'')+'" aria-pressed="'+equipped+'" data-act="carry" data-item="'+selected.id+'">'+iconLabel(equipped?'check':'pack',tr(equipped?'carried':'take'))+'</button>')+'</div>'+
+    '<div class="kit-actions"><button data-act="adSupply" aria-disabled="true" data-item="'+selected.id+'">'+iconLabel('ad',tr('adOne'))+'</button>'+
+    '<button data-act="buySupply" data-item="'+selected.id+'" aria-label="'+tr('buy')+' '+byLanguage(selected)+' '+selected.price+'">'+iconLabel('coins',selected.price+' · +1')+'</button></div></section></div>';
   drawModelCards('#scr-supplies');
   $('.supply-scroll').scrollTop=scrollTop;
 }
@@ -4757,9 +4832,9 @@ function renderPowerMenu(){
   const choices=TIMED_POWERS.map(item=>{
     const count=SAVE.stock[item.id],label=tr(count?'usePower':'adUse');
     return '<button class="power-choice'+(count?' ready':'')+'" data-act="usePower" data-item="'+item.id+'" aria-label="'+byLanguage(item)+' · '+label+'"'+(count?'':' aria-disabled="true"')+'>'+itemModel(item.id)+
-      '<span><b>'+byLanguage(item)+'</b><small>'+tr(item.text)+'</small></span><em>'+glyph(count?'play':'ad')+label+(count?' ×'+count:'')+'</em></button>';
+      '<span class="power-description"><b>'+byLanguage(item)+'</b><small>'+tr(item.text)+'</small></span><em>'+iconLabel(count?'play':'ad',label+(count?' ×'+count:''))+'</em></button>';
   }).join('');
-  dialog('powers','powers',tr('special'),tr('oneSpecial'),dialogMedal('pack'),choices+actionButton('powerBack',glyph('play')+tr('powerBack')));
+  dialog('powers','powers',tr('special'),tr('oneSpecial'),dialogMedal('pack'),choices+actionButton('powerBack',tr('powerBack'),'play'));
   drawModelCards('#scr-powers');
 }
 function resumeFromPowers(){Game.resume();showScreen('play');uiFrame();}
@@ -4788,7 +4863,7 @@ function updatePowerHud(){
   if(panel.dataset.effects!==key){
     panel.dataset.effects=key;panel.innerHTML=active.map(p=>{
       const [icon,zh,en]=HUD_EFFECT[p.id],label=LANG==='zh'?zh:en;
-      return '<div class="effect-chip" data-effect="'+p.id+'" style="--accent:'+p.color+'">'+glyph(icon)+'<span><b>'+byLanguage(p)+'</b><small>'+label+'</small></span><time></time><i class="effect-bar"></i></div>';
+      return '<div class="effect-chip" data-effect="'+p.id+'" style="--accent:'+p.color+'">'+glyph(icon)+'<span class="effect-text"><b>'+byLanguage(p)+'</b><small>'+label+'</small></span><time></time><i class="effect-bar"></i></div>';
     }).join('');
   }
   for(const p of active){
@@ -4825,23 +4900,23 @@ function showFail(){
   if(G.endless&&!ad&&!potion){finishEndless();return;}
   const title=tr(why==='slip'?'fallen':why==='spike'?'spiked':'missed');
   const main=ad?rewardBtn('revive','reviveLabel','adFail'):'';
-  const item=potion?actionButton('revivePotion',glyph('boost')+tr('potionRevive')+' ×'+SAVE.stock.revival,ad?'soft':'primary'):'';
+  const item=potion?actionButton('revivePotion',tr('potionRevive')+' ×'+SAVE.stock.revival,'potion',ad?'soft':'primary'):'';
   const note=G.endless?runEarnings('endlessEarned',G.coins):'<p>'+tr(ad||potion?'briefRevive':'briefSpent')+'</p>';
-  const end=G.endless?actionButton('cashOutEndless',glyph('coins')+tr('cashOut'),'soft'):
-    actionButton('retry',glyph('retry')+tr(ad||potion?'plainRetry':'retryRun'),ad||potion?'soft':'primary')+
+  const end=G.endless?actionButton('cashOutEndless',tr('cashOut'),'coins','soft'):
+    actionButton('retry',tr(ad||potion?'plainRetry':'retryRun'),'retry',ad||potion?'soft':'primary')+
       '<div class="icon-dock">'+iconLink('failGear','knife','changeGear',true)+iconLink('home','home','home')+'</div>';
   dialog('fail','failure',title,G.endless?endlessPosition(G.farthest):runCaption(),dialogMedal('knife'),note+main+item+end);
   showScreen('fail');
 }
 function renderSettings() {
   const o=SAVE.opts;
-  const toggle=(act,icon,key,on)=>'<button class="setrow" data-act="'+act+'" aria-pressed="'+on+'"><span>'+glyph(icon)+tr(key)+'</span><i class="sw '+(on?'on':'')+'"><u></u></i></button>';
+  const toggle=(act,icon,key,on)=>'<button class="setrow" data-act="'+act+'" aria-pressed="'+on+'"><span class="setting-label">'+iconLabel(icon,tr(key))+'</span><i class="sw '+(on?'on':'')+'"><u></u></i></button>';
   const seg=(act,options,cur)=>'<div class="segs">'+options.map(([v,label])=>'<button data-act="'+act+'" data-v="'+v+'" aria-pressed="'+(String(cur)===v)+'" class="'+(String(cur)===v?'on':'')+'">'+label+'</button>').join('')+'</div>';
   $('#scr-settings').innerHTML='<div class="topbar">'+navButton('settingsBack','back','back')+'<div class="ttl">'+tr('settings')+'</div><div class="spacer"></div></div><div class="scroll settings-scroll"><section class="sheet settings-sheet">'+
     toggle('sfx','speaker','sfxShort',o.sfx)+toggle('music','music','musicShort',o.music)+toggle('vib','vibration','vibShort',o.vib)+
-    '<div class="setrow"><span>'+glyph('lang')+tr('language')+'</span>'+seg('setlang',[['zh','中文'],['en','English']],LANG)+'</div>'+
-    '<div class="setrow"><span>'+glyph('levels')+tr('quality')+'</span>'+seg('setq',[['0',tr('q0')],['1',tr('q1')],['2',tr('q2')]],o.q)+'</div>'+
-    (stats?toggle('statPref','levels', 'playStats',stats.choice==='yes'):'')+
+    '<div class="setrow"><span class="setting-label">'+iconLabel('lang',tr('language'))+'</span>'+seg('setlang',[['zh','中文'],['en','English']],LANG)+'</div>'+
+    '<div class="setrow"><span class="setting-label">'+iconLabel('quality',tr('quality'))+'</span>'+seg('setq',[['0',tr('q0')],['1',tr('q1')],['2',tr('q2')]],o.q)+'</div>'+
+    (stats?toggle('statPref','chart','playStats',stats.choice==='yes'):'')+
     '<div class="setting-foot"><span class="ver">'+tr('ver')+'</span>'+
     (UI.settingsReturn==='home'?'<button class="reset-link" data-act="reset">'+tr(UI.resetArm?'reset2':'reset')+'</button>':'')+'</div></section></div>';
 }
@@ -4849,7 +4924,7 @@ function renderPause(){
   const settings=iconLink('settings','gear','settings',true);
   const options=G.endless?settings:iconLink('restart','retry','restart',true)+settings+iconLink('home','home','home');
   dialog('pause','pause',tr('paused'),runCaption(),dialogMedal('pause'),
-    actionButton('resume',glyph('play')+tr('resume'))+'<div class="icon-dock">'+options+'</div>');
+    actionButton('resume',tr('resume'),'play')+'<div class="icon-dock">'+options+'</div>');
 }
 
 
@@ -4905,12 +4980,12 @@ function renderResult(res) {
   const last=res.idx===NUM_LEVELS-1, style=FINISH_SHOWS[res.mult], amount=res.total*(res.doubled?2:1);
   const stars=[0,1,2].map(i=>starSvg(i<res.stars?'on':'')).join('');
   const title=last&&LANG==='zh'?'全部通关！':tr('complete');
-  const badge='<div class="finish-badge">'+glyph('trophy')+byLanguage(style)+'<b>×'+res.mult+'</b></div>';
+  const badge='<div class="finish-badge">'+iconLabel('trophy',byLanguage(style))+'<b>×'+res.mult+'</b></div>';
   const details='<div class="receipt-lines"><span>'+tr('collected')+'<strong>'+res.base.toLocaleString()+'</strong></span>'+
     '<span>'+tr('finishReward')+' · '+FINISH_COIN_UNIT+' × '+res.mult+'<strong>+'+res.finishBonus.toLocaleString()+'</strong></span></div>';
   const reward=runEarnings('income',amount,details,'res-total');
   dialog('result','victory',title,tr('level',{n:res.idx+1}),'<div class="result-stars">'+stars+'</div>',badge+reward+
-    actionButton(last?'home':'next',glyph(last?'home':'next')+tr(last?'home':'next'))+
+    actionButton(last?'home':'next',tr(last?'home':'next'),last?'home':'next')+
     rewardBtn('double',res.doubled?'doubled':'doubleLabel',res.doubled?'doubled':'doubleLabel',true)+
     '<div class="icon-dock">'+iconLink('retry','retry','plainRetry',true)+(last?'':iconLink('home','home','home'))+'</div>',
     ' style="--hit:'+style.color+'"');
@@ -4923,7 +4998,8 @@ function act(a, d = {}) {
     case 'play': sfx('ui'); startLevel(nextLevelIdx()); break;
     case 'endless': sfx('ui');showScreen('endless');break;
     case 'startEndless': return startEndless();
-    case 'inviteEndless': return inviteEndless();
+    case 'shareEndless': return shareEndless();
+    case 'copyEndlessLink': return copyEndlessLink();
     case 'cashOutEndless': return UI.screen==='fail'&&finishEndless();
     case 'levels': sfx('ui'); showScreen('levels'); break;
     case 'shop': case 'failGear': UI.shopReturn = a === 'failGear' ? 'fail' : 'home'; sfx('ui'); showScreen('shop'); break;
@@ -5271,7 +5347,8 @@ function bindInput() {
       if (UI.view === view && el.isConnected && !el.closest('.screen.hidden') && el.getAttribute('aria-disabled') !== 'true') act(el.dataset.act,el.dataset);
     };
     const remaining = state.until - performance.now();
-    if (remaining > 0) setTimeout(run,remaining); else run();
+    const needsActivation=el.dataset.act==='shareEndless'||el.dataset.act==='copyEndlessLink';
+    if(remaining>0&&!needsActivation)setTimeout(run,remaining);else run();
   }
   const shortcut = action => activate(st.querySelector('.screen:not(.hidden) button[data-act="'+action+'"]'));
   st.addEventListener('pointerdown', (e) => {
@@ -5361,7 +5438,7 @@ function bindInput() {
   /* keep the page itself still: no rubber-band scrolling, pinch zoom, long-press menus */
   document.addEventListener('touchmove', (e) => { if (!(e.target.closest && e.target.closest('.scroll, .modal'))) e.preventDefault(); }, { passive: false });
   document.addEventListener('gesturestart', (e) => e.preventDefault());
-  document.addEventListener('contextmenu', (e) => e.preventDefault());
+  document.addEventListener('contextmenu',e=>{if(!e.target.closest?.('.share-url'))e.preventDefault();});
   MAIN.cv.addEventListener('webglcontextlost', (e) => { e.preventDefault(); MAIN.dead = true; });
   MAIN.cv.addEventListener('webglcontextrestored', () => { try { location.reload(); } catch (e) { /* ignore */ } });
 }
