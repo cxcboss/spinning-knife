@@ -9,10 +9,29 @@ function game(store=new Map()){
     GFX.batch=()=>({addMesh(){},flat(){},clear(){},dispose(){}});
     ({SAVE,SAVE_KEY,saveLoad,saveWrite,calendarDay,recordPlayDay,clearedCourses,
       claimAchievement,drawWheelPrize,dailyChallengeFor,generateDailyCourse,beginDailyAttempt,dailyRecord,settleDailyChallenge,
-      botRun,botTick,Game,G,dailyRunScore,KNIFE_BY_ID,KNIVES,canEquip,act,UI,SC,drawKnifeForm})
+      botRun,botTick,Game,G,dailyRunScore,KNIFE_BY_ID,KNIVES,canEquip,act,UI,SC,drawKnifeForm,
+      WHEEL_DISPLAY,wheelTurn,wheelSector,wheelStop,wheelMotion,wheelAngleAt})
   `,{window:{},localStorage:{getItem:k=>store.get(k),setItem:(k,v)=>store.set(k,v)},URLSearchParams});
   return {...api,store};
 }
+
+test('转盘先加速再逐格减速，无论从哪一格开始都停在实际奖品上',()=>{
+  const {WHEEL_DISPLAY,wheelTurn,wheelSector,wheelStop,wheelMotion,wheelAngleAt}=game();
+  for(const from of WHEEL_DISPLAY)for(const to of WHEEL_DISPLAY){
+    const previous={slot:from},result={slot:to},motion=wheelMotion(previous,result);
+    const [duration,stop]=motion.at(-1),at=ms=>wheelAngleAt(motion,ms);
+    assert.equal(at(0),wheelStop(previous)+0);
+    assert(at(1050)-at(950)>(at(200)-at(100))*2);
+    assert(at(duration)-at(duration-100)<at(3500)-at(3400));
+    let angle=at(0);
+    for(let t=10;t<duration;t+=10){assert(at(t)>angle);angle=at(t);}
+    assert.equal(at(duration),stop);
+    assert.equal(stop%360,((wheelStop(result)%360)+360)%360);
+    assert.equal(WHEEL_DISPLAY[wheelSector(at(duration))],to);
+    assert.equal(WHEEL_DISPLAY[wheelSector(at(3180))],WHEEL_DISPLAY[(wheelSector(stop)+1)%WHEEL_DISPLAY.length]);
+    assert(at(3180)<stop-wheelTurn/2&&at(3720)>stop-wheelTurn/2);
+  }
+});
 
 test('旧关卡进度可领奖，限定刀只可由成就领取且不能重复领取',()=>{
   const a=game();

@@ -78,6 +78,22 @@ test('碎刃、龙身及龙头能在刀尖之外切开物件，保持变形和�
   }
 });
 
+test('飞行中的碎刃和龙身能领取三种悬空补给，每件只触发一次',()=>{
+  for(const weaponId of ['thousand','azure-dragon'])for(const id of ['goldrush','triple','rain']){
+    const {api,knife,G}=scene(),weapon=api.KNIVES.find(k=>k.id===weaponId);
+    G.equipment=weapon;knife.form=weapon.form;knife.tl=0;
+    const pose=api.beginPose(knife),parts=api.formParts(weapon,pose).filter(p=>p.z0<.12&&p.z1>-.12);
+    const leading=parts.reduce((a,b)=>a.cx>b.cx?a:b);
+    const pickup={id,x:leading.cx,y:leading.cy,phase:-2.4,taken:false};
+    G.pickups=[pickup];api.fxSliceStep(knife,pose);
+    assert(pickup.taken,weaponId+' / '+id);
+    const expiry=G.powerEnds[id];
+    assert(expiry>knife.t);assert.equal(knife.mode,'air');
+    knife.t+=.05;api.fxSliceStep(knife,pose);
+    assert.equal(G.powerEnds[id],expiry);assert.equal(G.cut,0);
+  }
+});
+
 test('每把刀切中后所有特效贴图可用，覆盖全部材质与终点贴图',()=>{
   const {api}=scene(),out={addMesh(){},sprite(_x,_y,_z,_w,_h,_a,_c,uv){assert(uv.every(Number.isFinite));},ribbon(){}};
   for(const key of Object.values(api.FINISH_UV))assert(api.atlUV(key).every(Number.isFinite));

@@ -384,32 +384,75 @@ button.achievement-reward {text-align:left;justify-self:start;border-radius:4px}
 .daily-hud b {font-variant-numeric:tabular-nums;color:#fff2c8;min-width:3em;text-align:center}
 .daily-hud.done {border-color:#8adbb1;background:#174544;color:#b5f5d2}
 #stage[data-run=daily] :is(.hudcoin,#power-button) {display:none}
-.wheel-body {display:grid;align-content:start;justify-items:center;gap:10px;padding-top:14px}
-.wheel-assembly {position:relative;width:min(88%,315px,50dvh);aspect-ratio:1;padding:2.5%;margin:5px auto 0;border-radius:50%;
-  border:1px solid #f9df9f;background:var(--grain),conic-gradient(from 45deg,#67407c,#cb9754,#6e4e95,#e3b77e,#67407c);
-  box-shadow:inset 0 0 0 3px #ffffff30,0 4px 0 #28203e,0 12px 28px #0a142bc4}
-.wheel-pointer {position:absolute;z-index:2;top:-10px;left:50%;translate:-50% 0;width:26px;height:28px;
-  background:linear-gradient(#fff3ae,#ef9f38);clip-path:polygon(10% 0,90% 0,100% 26%,50% 100%,0 26%);filter:drop-shadow(0 2px 1px #2f1723)}
-.wheel-disc {position:relative;isolation:isolate;width:100%;height:100%;border-radius:50%;border:1px solid #ffde8a;overflow:hidden;
-  background:var(--grain),var(--sectors);box-shadow:inset 0 0 9px #10142eaf;transform:rotate(var(--wheel-angle));will-change:transform}
-.wheel-disc::after {content:"";position:absolute;inset:7%;border:1px solid #f5e4b03d;border-radius:50%;pointer-events:none}
-.wheel-piece {position:absolute;z-index:1;left:var(--left);top:var(--top);translate:-50% -50%;display:grid;justify-items:center;gap:3px;
-  --glyph-size:clamp(14px,calc(var(--u)*4.9),22px);font-size:clamp(10px,calc(var(--u)*3.5),15px);color:#fff5d5;white-space:nowrap;
-  text-shadow:0 1px 2px #181924;font-weight:850;rotate:calc(0deg - var(--wheel-angle));transition:color .14s,filter .14s}
-.wheel-piece .glyph {color:#ffe0a2}
-.wheel-piece.rare {color:#fff0bc}
-.wheel-piece.active {color:#fff8dc;filter:drop-shadow(0 0 5px #ffe29b)}
-.wheel-assembly.coasting {box-shadow:inset 0 0 0 3px #ffffff33,0 4px 0 #28203e,0 0 18px #f3c77257,0 12px 28px #0a142bc4}
-.wheel-assembly.spinning .wheel-pin {animation:wheel-hub .76s ease-in-out alternate infinite}
-@keyframes wheel-hub {to{box-shadow:inset 0 0 0 3px #ab7ca148,0 0 15px #ffdc79a0}}
-.wheel-pin {position:absolute;left:50%;top:50%;translate:-50% -50%;width:23%;height:23%;display:grid;place-items:center;border-radius:50%;
-  --glyph-size:45%;border:2px solid #f5d889;color:#5c3f23;background:var(--grain),var(--gold);
-  box-shadow:inset 0 0 0 3px #84528b67,0 3px 7px #0d1635af}
-.wheel-receipt {width:min(100%,360px);min-height:58px;display:grid;place-content:center;justify-items:center;gap:3px;padding:7px;text-align:center}
-.wheel-receipt small {font-size:11px;color:#c6d7ee}
-.wheel-receipt strong {display:flex;align-items:center;gap:5px;font-size:clamp(14px,calc(var(--u)*5),21px);color:#ffe5a6}
-.wheel-actions {display:grid;gap:8px;width:min(100%,360px)}
-.wheel-body .event-date {color:#b8cbe6;font-size:11px}
+#scr-wheel {background:radial-gradient(ellipse at 50% 27%,#614468,#302d50 44%,#161c36 86%);--rim:#b6a0cb75}
+.wheel-body {display:grid;align-content:start;justify-items:center;gap:clamp(10px,2.1dvh,19px);padding-top:clamp(25px,5dvh,46px)}
+.wheel-assembly {position:relative;isolation:isolate;width:min(96%,354px,50dvh);aspect-ratio:1;padding:11px;margin:0 auto 5px;border-radius:50%;
+  border:1px solid #ffebba;background:var(--grain),conic-gradient(from 17deg,#b27140,#ffe5ab,#a65937,#f6c784,#8a4f36,#ffe5ab,#b27140);
+  box-shadow:inset 0 0 0 2px #fff1be9c,inset 0 0 0 7px #58312670,0 5px 0 #683e42,0 8px 0 #35243c,0 17px 28px #151329a3}
+.wheel-assembly::before {content:"";position:absolute;z-index:-1;inset:auto -9% -23px;height:18%;border-radius:50%;
+  background:radial-gradient(ellipse,#101125db,#10112569 52%,transparent 72%)}
+.wheel-disc {position:relative;isolation:isolate;width:100%;height:100%;border-radius:50%;border:1px solid #764538;overflow:hidden;
+  background:var(--grain),radial-gradient(circle,#fff2bb1c,#17213629 65%,#1513267a),
+    repeating-conic-gradient(from -22.5deg,#ffdd9d8c 0 .45deg,transparent .5deg 44.55deg,#12182993 44.6deg 45deg),var(--sectors);
+  box-shadow:inset 0 0 0 4px #2a193c5c;transform:rotate(var(--wheel-angle))}
+.wheel-body:is([data-phase=spin],[data-phase=coast],[data-phase=linger]) .wheel-disc {will-change:transform}
+.wheel-disc::after {content:"";position:absolute;inset:8%;border:1px solid #ffe4b632;border-radius:50%;pointer-events:none}
+.wheel-wedge-light {position:absolute;inset:0;background:conic-gradient(from -22.5deg,#fff5c263 0 45deg,transparent 45deg);
+  transform:rotate(var(--wheel-focus));opacity:.34;
+  mask-image:radial-gradient(circle,transparent 17%,#000 46%,#000 95%);transition:opacity .2s;pointer-events:none}
+.wheel-body[data-phase=spin] .wheel-wedge-light {opacity:0}
+.wheel-body[data-phase=coast] .wheel-wedge-light {opacity:.65}
+.wheel-body[data-phase=linger] .wheel-wedge-light {opacity:.91}
+.wheel-body:is([data-phase=settled],[data-phase=won]) .wheel-wedge-light {animation:wheel-selected .62s ease-out both}
+@keyframes wheel-selected {0%,26%{opacity:1}100%{opacity:.64}}
+.wheel-stud,.wheel-piece {position:absolute;left:var(--left);top:var(--top);translate:-50% -50%}
+.wheel-stud {width:5px;height:5px;border-radius:50%;background:radial-gradient(circle at 38% 28%,#fff5c9,#ffcb83 46%,#9b5f43 80%);
+  box-shadow:0 1px 2px #231729}
+.wheel-piece {z-index:1;display:grid;justify-items:center;gap:3px;--glyph-size:clamp(14px,calc(var(--u)*5.75),24px);
+  font-size:clamp(9px,calc(var(--u)*3.4),15px);line-height:1.12;white-space:nowrap;
+  color:#fff8e6;text-shadow:0 1px 2px #160f23,0 2px 3px #160f23a0;font-weight:850;rotate:calc(0deg - var(--wheel-angle))}
+.wheel-piece .glyph {color:var(--prize-metal);filter:drop-shadow(0 1px 1px #211526)}
+.wheel-piece .glyph svg {stroke-width:1.75}
+.wheel-piece.active {color:#fff8df}
+.wheel-crown {position:absolute;z-index:3;top:-18px;left:50%;translate:-50% 0;width:56px;height:22px;border:1px solid #ffefbd;
+  border-radius:11px 11px 7px 7px;background:var(--grain),linear-gradient(#fff0bd,#e3ad69 60%,#ae6944);
+  box-shadow:inset 0 2px #fff2cb,0 4px 6px #2c1b32}
+.wheel-crown::before {content:"";position:absolute;inset:5px 17px 7px;border-radius:10px;background:#573850;
+  box-shadow:inset 0 1px 2px #392642}
+.wheel-lamp {position:absolute;inset:5px 17px 7px;border-radius:10px;background:var(--wheel-accent,#ffdd9e);
+  box-shadow:0 0 13px 2px var(--wheel-accent,#ffdd9e);opacity:.18;transition:opacity .2s}
+.wheel-body[data-phase=coast] .wheel-lamp {opacity:.58}
+.wheel-body:is([data-phase=linger],[data-phase=settled],[data-phase=won]) .wheel-lamp {opacity:1}
+.wheel-pointer {position:absolute;top:14px;left:50%;translate:-50% 0;width:27px;height:30px;transform-origin:50% 10%;
+  background:linear-gradient(110deg,#ab663b,#ffda83 26%,#fff1bd 48%,#e9a755 65%,#8e4b32);clip-path:polygon(6% 0,94% 0,100% 33%,50% 100%,0 33%)}
+.wheel-hub {position:absolute;z-index:2;left:50%;top:50%;translate:-50% -50%;width:24%;aspect-ratio:1;display:grid;place-items:center;border-radius:50%;
+  --glyph-size:44%;border:1px solid #ffeac2;color:#fff4bd;background:radial-gradient(circle,#4a3a59 36%,#23233d 61%,#e4aa6d 63%,#fff0ad 68%,#a35937 74%);
+  box-shadow:0 3px 7px #18152baf,inset 0 0 0 2px #ffe4a491}
+.wheel-hub::after {content:"";position:absolute;inset:11%;border-radius:50%;border:1px solid var(--wheel-accent,#ffdd9e);opacity:.38}
+.wheel-body[data-phase=spin] .wheel-hub::after {animation:wheel-hub .65s ease-in-out alternate infinite}
+.wheel-body:is([data-phase=settled],[data-phase=won]) .wheel-hub::after {animation:wheel-hub-burst .55s ease-out both}
+@keyframes wheel-hub {to{opacity:1;scale:1.17}}
+@keyframes wheel-hub-burst {from{opacity:1;scale:.8}to{opacity:0;scale:2.25}}
+.wheel-receipt {position:relative;width:min(100%,354px);min-height:62px;display:grid;place-content:center;justify-items:center;gap:3px;padding:7px 27px;
+  text-align:center;border:1px solid #c4a17c69;border-radius:13px;overflow:hidden;background:var(--grain),linear-gradient(#2a2341,#201d35);
+  box-shadow:inset 0 2px 6px #1816298a,0 3px 0 #1b182e}
+.wheel-receipt::before,.wheel-receipt::after {content:"";position:absolute;top:50%;width:6px;height:6px;
+  background:var(--wheel-accent,#f1c293);translate:0 -50%;rotate:45deg;opacity:.45}
+.wheel-receipt::before {left:14px}.wheel-receipt::after {right:14px}
+.wheel-receipt small {font-size:11px;color:#dccde5;line-height:1.25}
+.wheel-readout {display:flex;align-items:center;justify-content:center;gap:6px;font-size:clamp(14px,calc(var(--u)*5),21px);line-height:1.2;
+  font-variant-numeric:tabular-nums;color:var(--wheel-accent,#ffe3ab);min-height:1.2em}
+.wheel-readout>.glyph {--glyph-size:19px}
+.wheel-readout.payout {animation:wheel-payout .52s cubic-bezier(.17,.76,.26,1.14) both}
+@keyframes wheel-payout {0%{opacity:.25;scale:.84;translate:0 6px}56%{scale:1.11}100%{opacity:1;scale:1;translate:0}}
+.wheel-idle-dots {display:flex;gap:8px;opacity:.56}
+.wheel-idle-dots i {width:5px;height:5px;border-radius:50%;background:#f0c799}
+.wheel-body[data-phase=spin] .wheel-idle-dots i {animation:wheel-dots .7s ease-in-out infinite alternate}
+.wheel-body[data-phase=spin] .wheel-idle-dots i:nth-child(2) {animation-delay:.15s}
+.wheel-body[data-phase=spin] .wheel-idle-dots i:nth-child(3) {animation-delay:.3s}
+@keyframes wheel-dots {from{opacity:.25}to{opacity:1}}
+.wheel-actions {display:grid;gap:8px;width:min(100%,354px)}
+.wheel-actions [aria-busy=true] {filter:saturate(.55) brightness(.85)}
 :is(#scr-notice,#scr-trial-pin,#scr-trial-settings) {align-items:center;justify-content:center;padding:var(--safe-top) var(--gutter) var(--safe-bottom)}
 #scr-notice {z-index:8}
 .dialog-head.warning {background:var(--grain),radial-gradient(ellipse at 50% 0%,#916244,#4c4160 84%)}
@@ -443,8 +486,24 @@ button.achievement-reward {text-align:left;justify-self:start;border-radius:4px}
 @keyframes prize-arrive {from{opacity:0;scale:.62;translate:0 13px}to{opacity:1;scale:1;translate:0}}
 @keyframes prize-rays {to{rotate:1turn}}
 @keyframes prize-twinkle {0%,100%{opacity:0;scale:.25}35%{opacity:1;scale:1.17}65%{opacity:.78;scale:.86}}
+.wheel-reveal .prize-stage {min-height:clamp(120px,25dvh,206px);border-color:#e9bb8e79;--reward-light:#dfbbfd}
+.wheel-reveal.mythic .prize-stage {--reward-light:#b5fae1}
+.wheel-reveal.gold .prize-stage {--reward-light:#ffe29e}
+.wheel-reveal.supply .prize-stage {--reward-light:#c7edf8;background:radial-gradient(ellipse,#486780,#19283f 74%)}
+.wheel-reveal .prize-stage::before {opacity:.63;animation:wheel-reveal-rays 1.25s ease-out both}
+.wheel-reveal .prize-stage::after {content:"";position:absolute;z-index:-1;width:34%;aspect-ratio:1;border:2px solid var(--reward-light);
+  border-radius:50%;box-shadow:inset 0 0 18px var(--reward-light),0 0 18px var(--reward-light);animation:wheel-reveal-ring .82s ease-out both}
+.wheel-reveal .prize-stage canvas {width:min(93%,292px);animation:wheel-reveal-model .82s cubic-bezier(.19,.77,.25,1.03) both}
+.wheel-reveal .prize-stage canvas.kit-model {width:min(64%,194px)}
+.wheel-reveal .prize-name {animation:wheel-payout .52s cubic-bezier(.17,.76,.26,1.14) .18s both}
+@keyframes wheel-reveal-rays {from{rotate:-25deg;scale:.38;opacity:0}45%{opacity:.83}to{rotate:0deg;scale:1;opacity:.5}}
+@keyframes wheel-reveal-ring {from{scale:.36;opacity:1}to{scale:2.9;opacity:0}}
+@keyframes wheel-reveal-model {0%{opacity:0;scale:.62;translate:0 26px;rotate:-8deg}60%{scale:1.06;translate:0 -5px}100%{opacity:1;scale:1;translate:0;rotate:0deg}}
 @media(prefers-reduced-motion:reduce) {
-  .prize-stage::before,.prize-stage canvas,.prize-stage>.glyph,.prize-twinkle {animation:none}
+  .prize-stage::before,.prize-stage canvas,.prize-stage>.glyph,.prize-twinkle,
+  .wheel-body[data-phase] .wheel-wedge-light,.wheel-body[data-phase] .wheel-hub::after,.wheel-body[data-phase] .wheel-idle-dots i,
+  .wheel-body .wheel-readout,.wheel-reveal .prize-stage::before,.wheel-reveal .prize-stage canvas,.wheel-reveal .prize-name {animation:none}
+  .wheel-reveal .prize-stage::after {display:none}
 }
 </style>
 <script type="text/plain" id="font-license">
@@ -3884,7 +3943,10 @@ function fxSliceStep(K,from=K,dt=PHYS.DT){
     const y=pickupY(o,K.t),q=pickupCollider(o,y,K.t);
     gather(o,q,0,0,y-pickupY(o,K.t-dt));
   }
-  if(targets.length)sweepWeapon(G.equipment,from,pose,targets,transformed,K.scale);
+  if(targets.length){
+    const cache=transformed?(K.formSweep??={}):null;
+    sweepWeapon(G.equipment,from,pose,targets,transformed,K.scale,cache);
+  }
   for(const {o,q,hit,by} of targets){
     if(!hit)continue;
     if(POWER_BY_ID[o.id]){
@@ -4045,7 +4107,7 @@ const G = {
 };
 const R3 = new Float32Array(9);
 const txt = (k) => (typeof tr === 'function' ? tr(k) : k);
-function vib(p) { try { if (typeof SAVE !== 'undefined' && SAVE.opts.vib && !G.demo && navigator.vibrate && (!navigator.userActivation || navigator.userActivation.hasBeenActive)) navigator.vibrate(p); } catch (e) { /* ignore */ } }
+function vib(p,fromAction=false) { try { if (typeof SAVE !== 'undefined' && SAVE.opts.vib && (fromAction||!G.demo) && navigator.vibrate && (!navigator.userActivation || navigator.userActivation.hasBeenActive)) navigator.vibrate(p); } catch (e) { /* ignore */ } }
 if (typeof sfx === 'undefined') { var sfx = function () {}; }
 
 // Pickups live on the actual flight path. A new run rolls a fresh set; a revive keeps spent pickups.
@@ -4075,6 +4137,8 @@ function activatePower(item){
 }
 function powerCoinValue(value){return G.K.t<G.powerEnds.goldrush?value*2:value;}
 function pickupY(o,t){return o.y+.18*Math.sin(t*2.4+o.phase);}
+const PICKUP_SCALE=.83,PICKUP_LEAN=.27;
+function pickupAngle(o,t){return .10*Math.sin(t+o.phase);}
 function specialStep(dt){
   const K=G.K;
   if(G.demo||G.dead||G.fin||K.mode==='dead'||K.mode==='done')return;
@@ -4116,7 +4180,7 @@ function drawSpecials(cx){
   for(const o of G.pickups){
     if(o.taken||o.x<cx-8||o.x>cx+14)continue;
     const t=G.K.t,y=pickupY(o,t),item=POWER_BY_ID[o.id],c=hexc(item.color);
-    SC.dynO.addMesh(kitModelMesh(o.id),o.x,y,0,matZX(.10*Math.sin(t+o.phase),.27,R3),.83,null);
+    SC.dynO.addMesh(kitModelMesh(o.id),o.x,y,0,matZX(pickupAngle(o,t),PICKUP_LEAN,R3),PICKUP_SCALE,null);
     SC.dynO.addMesh(chipMesh('wave'),o.x,y-.1,0,matZX(.28,1.01+.26*Math.sin(t*1.8+o.phase),R3),.59,c);
     for(let j=0;j<3;j++){
       const a=t*2.1+j*TAU/3+o.phase;SC.dynA.sprite(o.x+.58*Math.cos(a),y+.45*Math.sin(a),.17,.11,.11,a,c,atlUV('spark'));
@@ -4571,9 +4635,15 @@ function formParts(knife,pose){
 function airFormActive(knife,from,to){
   return !!knife?.form&&Math.max(from.spread||0,to.spread||0)>(knife.form==='dragon'?.10:.01);
 }
-function sweepWeapon(knife,from,to,targets,transformed=airFormActive(knife,from,to),scale=1){
+function sweepWeapon(knife,from,to,targets,transformed=airFormActive(knife,from,to),scale=1,cache=null){
   if(!transformed){sweepContacts(contactSkin(knife),{...to,scale},from,targets);return;}
-  sweepPosedParts(formParts(knife,from),formParts(knife,to),targets,0,1,true);
+  // The end of one fixed step is usually the start of the next.
+  const last=cache?.pose;
+  const same=last&&last.time===from.time&&last.x===from.x&&last.y===from.y&&last.a===from.a&&
+    last.tilt===from.tilt&&last.spread===from.spread;
+  const start=same?cache.parts:formParts(knife,from),end=formParts(knife,to);
+  if(cache){cache.pose=to;cache.parts=end;}
+  sweepPosedParts(start,end,targets,0,1,true);
   if(knife.form==='dragon'&&Math.max(from.spread,to.spread)<.55){
     const bladeScale=1-sstep(.12,.55,to.spread);
     if(bladeScale>.02&&targets.some(t=>!t.hit))sweepContacts(contactSkin(knife),{...to,scale:bladeScale},from,targets);
@@ -4776,7 +4846,7 @@ const Game = { start: gStart, update: gUpdate, draw: gDraw, tap: gTap, pause: gP
 /* ============================================================
  *  08_audio.js — tiny WebAudio synth: sound effects + a light generative music loop (no audio files)
  * ============================================================ */
-const AUD = { ctx: null, master: null, sfxG: null, musG: null, noise: null, on: true, music: true, mTimer: 0, mStep: 0, mNext: 0, world: 0, last: {} };
+const AUD = { ctx: null, master: null, sfxG: null, musG: null, noise: null, on: true, music: true, wheelDucking:false, mTimer: 0, mStep: 0, mNext: 0, world: 0, last: {} };
 
 function audInit() {
   if (AUD.ctx) { audResume(); return; }
@@ -4799,7 +4869,7 @@ function audApply() {
   if (!AUD.ctx) return;
   const t = AUD.ctx.currentTime;
   AUD.sfxG.gain.setTargetAtTime(AUD.on ? 0.9 : 0, t, 0.02);
-  AUD.musG.gain.setTargetAtTime(AUD.music ? 0.2 : 0, t, 0.25);
+  AUD.musG.gain.setTargetAtTime(AUD.music ? (AUD.wheelDucking ? .074 : .2) : 0, t, 0.25);
 }
 /* ---- building blocks ---- */
 function tone(type, f0, f1, t0, dur, vol, dest, q) {
@@ -4863,11 +4933,29 @@ function sfx(name, o) {
       break;
     }
     case 'star': tone('triangle', NOTE(76 + (o.i || 0) * 4), NOTE(76 + (o.i || 0) * 4), t, 0.3, 0.25); tone('sine', NOTE(88 + (o.i || 0) * 4), NOTE(88 + (o.i || 0) * 4), t, 0.2, 0.1); break;
-    case 'wheelTick': tone('triangle',450,260,t,.043,.12); break;
+    case 'wheelStart':
+      tone('triangle',190,430,t,.21,.12);noiseBurst(t,.22,.08,850,2400,.8);
+      break;
+    case 'wheelTick':
+      tone('triangle',o.slow?730:480,o.slow?320:285,t,o.slow?.058:.029,o.slow?.15:.075);
+      if(o.slow&&o.highlight)tone('sine',NOTE(81),NOTE(80),t+.018,.15,.075);
+      break;
+    case 'wheelLock':
+      tone('sine',201,86,t,.15,.18);noiseBurst(t,.075,.085,2700,1280,.7);
+      break;
+    case 'wheelCoins':
+      tone('triangle',NOTE(77),NOTE(77),t,.095,.12);tone('sine',NOTE(84),NOTE(84),t+.067,.19,.14);
+      break;
     case 'prizeReveal': {
-      const intervals=o.rare?[0,7,12,16,19]:[0,4,7];
-      intervals.forEach((d,i)=>tone(i%2?'sine':'triangle',NOTE(67+d),NOTE(67+d),t+i*.071,.26+i*.03,.14));
-      if(o.rare)tone('sine',NOTE(55),NOTE(55),t,.5,.13);
+      const mythic=o.reveal==='mythic',jackpot=o.reveal==='gold';
+      const root=mythic?62:jackpot?72:67;
+      const notes=mythic?[0,7,12,14,19,24]:o.rare||jackpot?[0,7,12,16,19]:[0,4,7];
+      notes.forEach((d,i)=>{
+        const f=NOTE(root+d),at=t+i*(mythic?.095:.071);
+        tone(i%2?'sine':'triangle',f,f,at,.26+i*.03,.14);
+      });
+      if(o.rare||jackpot)tone('sine',NOTE(root-12),NOTE(root-12),t,mythic?.72:.5,.13);
+      if(mythic)noiseBurst(t,.44,.08,950,3920,.55);
       break;
     }
     case 'ui': tone('triangle', 640, 760, t, 0.06, 0.18); break;
@@ -4942,7 +5030,7 @@ const I18N = {
     challengeOne:'每天 1 次 · 开始即计入', challengeUsed:'今日次数已用完', challengeTomorrow:'明日解锁',
     challengeClock:'{n} 秒', shareScore:'分享战绩', shareEarned:'我在《飞刀切切切》解锁了「{title}」{prize}！', shareBlade:'，拿到{n}',
     shareDailyResult:'我在《飞刀切切切》的「{title}」挑战打出了 {score}。来试试今天的赛道！', shareTextCopied:'战绩已复制',
-    wheel:'幸运转盘', wheelFree:'免费转一次', wheelPaid:'{n} 金币转一次', wheelIdle:'每日首抽免费', wheelLast:'最近奖励', wheelSpinning:'转盘转动中',
+    wheel:'幸运转盘', wheelFree:'免费转一次', wheelPaid:'{n} 金币转一次', wheelLast:'最近奖励', wheelSpinning:'转盘转动中', wheelWon:'本次奖励',
     wheelSupply:'补给', wheelAstro:'星轮', wheelDragon:'苍龙',
     endless:'无尽挑战', endlessStart:'进入赛道', endlessToday:'今日剩余 {n} 局', endlessLimit:'每日基础 {n} 局', endlessOut:'今日次数已用完',
     shareEndless:'分享游戏 · +{n} 局', shareCount:'今日分享 {n}/{max}', shareLimit:'今日分享奖励已领完',
@@ -4975,7 +5063,7 @@ const I18N = {
     challengeOne:'One attempt per day', challengeUsed:'Today’s attempt used', challengeTomorrow:'Unlocks tomorrow',
     challengeClock:'{n}s', shareScore:'Share score', shareEarned:'I earned “{title}”{prize} in Slice Flip!', shareBlade:' and unlocked the {n}',
     shareDailyResult:'I scored {score} in today’s Slice Flip challenge “{title}”. Try the same course!', shareTextCopied:'Score copied',
-    wheel:'Prize Wheel', wheelFree:'Spin for free', wheelPaid:'Spin for {n} coins', wheelIdle:'Daily free spin', wheelLast:'Latest prize', wheelSpinning:'Spinning',
+    wheel:'Prize Wheel', wheelFree:'Spin for free', wheelPaid:'Spin for {n} coins', wheelLast:'Latest prize', wheelSpinning:'Spinning', wheelWon:'Prize won',
     wheelSupply:'Supply', wheelAstro:'Astral', wheelDragon:'Dragon',
     endless:'Endless', endlessStart:'Start run', endlessToday:'{n} runs left today', endlessLimit:'{n} daily runs', endlessOut:'No runs left today',
     shareEndless:'Share game · +{n} runs', shareCount:'Shares today {n}/{max}', shareLimit:'All share rewards claimed',
@@ -5148,10 +5236,10 @@ function settleDailyChallenge(spec,result,today=calendarDay()){
 
 const WHEEL_COST=120;
 const WHEEL_PRIZES=[
-  {weight:3865,coins:20,color:'#294673'}, {weight:3100,coins:45,color:'#355c87'},
-  {weight:1900,coins:80,color:'#294673'}, {weight:600,coins:240,color:'#246662'},
-  {weight:150,coins:650,color:'#946329'}, {weight:320,supply:true,color:'#315877'},
-  {weight:56,knife:'gilded-wheel',color:'#64458c'}, {weight:9,knife:'azure-dragon',color:'#2d696b'},
+  {weight:3865,coins:20,color:'#35466e'}, {weight:3100,coins:45,color:'#425883'},
+  {weight:1900,coins:80,color:'#404674'}, {weight:600,coins:240,color:'#396278'},
+  {weight:150,coins:650,color:'#9b6032'}, {weight:320,supply:true,color:'#395e5f'},
+  {weight:56,knife:'gilded-wheel',color:'#784b82'}, {weight:9,knife:'azure-dragon',color:'#22736f'},
 ];
 const WHEEL_WEAPONS=WHEEL_PRIZES.flatMap((prize,slot)=>prize.knife?[slot]:[]);
 const WHEEL_CASH_AND_SUPPLY=WHEEL_PRIZES.reduce((sum,prize)=>sum+(prize.knife?0:prize.weight),0);
@@ -5524,24 +5612,29 @@ function showShortfall(price){
   showNotice('coins',tr('need'),'coins','<p class="notice-detail">'+tr('shortage',{n:gap})+'</p>'+
     actionButton('noticeClose',tr('dismiss'),'check'));
 }
-function showPrize(prize){
+function showPrize(prize,fromWheel=false){
   const id=prize.knife||prize.item,knife=!!prize.knife;
   const medal=knife?'knife':prize.item?'pack':'coins';
-  const model=knife?'<canvas aria-hidden="true" data-knife="'+id+'" width="245" height="125"></canvas>':
-    prize.item?itemModel(id):glyph('coins');
-  const colors=prize.knife==='azure-dragon'||prize.knife==='thousand'?'mythic':knife?'blade':'gold';
-  const flecks=[[16,24],[76,17],[89,47],[12,68],[58,77],[38,13]].map(([x,y],i)=>
-    '<span style="--x:'+x+'%;--y:'+y+'%;--delay:'+i*.08+'s">'+glyph('star','prize-twinkle')+'</span>').join('');
+  const modelId=id||(fromWheel&&prize.coins?'gild':'');
+  const model=knife?'<canvas aria-hidden="true" data-knife="'+id+'"'+(fromWheel?' data-zoom="1.52"':'')+' width="245" height="125"></canvas>':
+    modelId?itemModel(modelId):glyph('coins');
+  const colors=prize.knife==='azure-dragon'||prize.knife==='thousand'?'mythic':knife?'blade':fromWheel&&prize.item?'supply':'gold';
+  const stars=[[16,24],[76,17],[89,47],[12,68],[58,77],[38,13]];
+  if(fromWheel&&colors==='mythic')stars.push([25,72],[70,68],[8,43],[83,32],[58,15],[37,82]);
+  const flecks=stars.map(([x,y],i)=>
+    '<span style="--x:'+x+'%;--y:'+y+'%;--delay:'+i*.055+'s">'+glyph('star','prize-twinkle')+'</span>').join('');
   const canWear=knife&&canEquip(id)&&SAVE.knife!==id;
   const actions='<div class="notice-buttons'+(canWear?' two':'')+'">'+
     actionButton('noticeClose',tr('dismiss'),'check',canWear?'soft':'primary')+
     (canWear?actionButton('noticeEquip',tr('equip'),'knife'):'')+'</div>';
-  showNotice('reward',tr(knife?'rewardBlade':'rewardPrize'),medal,
+  showNotice('reward',tr(knife&&!fromWheel?'rewardBlade':'rewardPrize'),medal,
     '<div class="prize-stage" id="prize-model">'+flecks+model+'</div><div class="prize-name">'+wheelPrizeLabel(prize)+'</div>'+actions,
     'victory',prize);
   $('#scr-notice .modal').classList.add('prize-reveal',colors);
-  if(id)drawModelCards('#prize-model',knife);
-  sfx('prizeReveal',{rare:knife});vib(knife?[12,26,33]:15);
+  if(fromWheel)$('#scr-notice .modal').classList.add('wheel-reveal');
+  if(modelId)drawModelCards('#prize-model',knife);
+  sfx('prizeReveal',{rare:knife,reveal:fromWheel?colors:null});
+  vib(fromWheel&&colors==='mythic'?[12,45,19,48,31]:knife?[12,26,33]:15,true);
 }
 function renderTrialPin(){
   dialog('trial-pin','pause',tr('trialCode'),'',dialogMedal('lock'),
@@ -5742,62 +5835,115 @@ const WHEEL_DISPLAY=[0,7,1,4,2,6,3,5];
 const wheelTurn=360/WHEEL_DISPLAY.length;
 const wheelStop=prize=>prize?-WHEEL_DISPLAY.indexOf(prize.slot)*wheelTurn:0;
 const wheelPremium=prize=>!!(prize?.knife||prize?.item||prize?.supply||prize?.coins>=240);
+const wheelSector=angle=>((Math.round(-angle/wheelTurn)%WHEEL_DISPLAY.length)+WHEEL_DISPLAY.length)%WHEEL_DISPLAY.length;
+const wheelIcon=prize=>prize.coins?'coins':prize.supply||prize.item?'pack':prize.knife==='azure-dragon'?'knife':'star';
+function wheelMetal(prize){
+  if(prize.knife)return prize.knife==='azure-dragon'?'#c1fff0':'#f2ccff';
+  if(prize.supply||prize.item)return '#aeeeda';
+  return prize.coins>=240?'#ffe297':'#f1cd98';
+}
 function wheelPrizeLabel(prize){
   if(prize.coins)return '+'+tr('achievementCoins',{n:prize.coins});
   if(prize.knife)return byLanguage(KNIFE_BY_ID[prize.knife]);
   return byLanguage(ALL_SUPPLIES.find(i=>i.id===prize.item))+' ×1';
 }
+const wheelDots='<span class="wheel-idle-dots" aria-hidden="true"><i></i><i></i><i></i></span>';
+function wheelSectorLabel(prize){return prize.coins||tr(prize.supply?'wheelSupply':prize.knife==='azure-dragon'?'wheelDragon':'wheelAstro');}
 function renderWheel(){
-  const root=$('#scr-wheel'),p=SAVE.progression,today=UI.eventDay=calendarDay(),free=today>p.freeSpinDay;
+  const root=$('#scr-wheel');
   const sectors=WHEEL_DISPLAY.map((slot,i)=>WHEEL_PRIZES[slot].color+' '+i*wheelTurn+'deg '+(i+1)*wheelTurn+'deg').join(',');
+  const position=(a,r)=>'--left:'+(50+r*Math.sin(a))+'%;--top:'+(50-r*Math.cos(a))+'%';
   const labels=WHEEL_DISPLAY.map((slot,i)=>{
-    const v=WHEEL_PRIZES[slot],a=i*TAU/WHEEL_DISPLAY.length,icon=v.coins?'coins':v.supply?'pack':v.knife==='azure-dragon'?'knife':'star';
-    return '<span class="wheel-piece'+(wheelPremium(v)?' rare':'')+'" style="--left:'+(50+33*Math.sin(a))+'%;--top:'+(50-33*Math.cos(a))+'%">'+glyph(icon)+
-      (v.coins||tr(v.supply?'wheelSupply':v.knife==='azure-dragon'?'wheelDragon':'wheelAstro'))+'</span>';
+    const v=WHEEL_PRIZES[slot],a=i*TAU/WHEEL_DISPLAY.length;
+    return '<span class="wheel-piece" style="'+position(a,32)+';--prize-metal:'+wheelMetal(v)+'">'+
+      glyph(wheelIcon(v))+wheelSectorLabel(v)+'</span>'+
+      '<i class="wheel-stud" style="'+position(a+TAU/(2*WHEEL_DISPLAY.length),46.5)+'"></i>';
   }).join('');
   root.classList.add('event-screen');
   root.innerHTML=shopHead(UI.wheelReturn==='shop'?'backToPrize':'home','wheel','wheel-wallet')+
-    '<div class="scroll wheel-body"><div class="wheel-assembly"><div class="wheel-pointer"></div>'+
-    '<div class="wheel-disc" id="wheel-disc" style="--sectors:conic-gradient(from -'+wheelTurn/2+'deg,'+sectors+');--wheel-angle:'+wheelStop(p.lastPrize)+'deg" aria-hidden="true">'+labels+'</div>'+
-    '<div class="wheel-pin">'+glyph('star')+'</div></div>'+
-    '<div class="wheel-receipt sheet" role="status" id="wheel-receipt"><small>'+tr(p.lastPrize?'wheelLast':'wheelIdle')+'</small>'+
-    (p.lastPrize?'<strong>'+iconLabel(p.lastPrize.knife?'knife':p.lastPrize.item?'pack':'coins',wheelPrizeLabel(p.lastPrize))+'</strong>':'')+'</div>'+
-    '<div class="wheel-actions">'+actionButton('spinWheel',tr(free?'wheelFree':'wheelPaid',{n:WHEEL_COST}),free?'wheel':'coins','primary',UI.wheelBusy)+
-    (p.lastPrize?.knife?'<button class="action soft" data-act="previewPrize" data-knife="'+p.lastPrize.knife+'">'+iconLabel('knife',tr('fullPreview'))+'</button>':'')+'</div></div>';
+    '<div class="scroll wheel-body">'+
+    '<div class="wheel-assembly" aria-hidden="true"><div class="wheel-crown"><i class="wheel-lamp"></i><i class="wheel-pointer"></i></div>'+
+    '<div class="wheel-disc" id="wheel-disc" style="--sectors:conic-gradient(from -'+wheelTurn/2+'deg,'+sectors+
+    ')"><i class="wheel-wedge-light"></i>'+labels+'</div><div class="wheel-hub">'+glyph('star')+'</div></div>'+
+    '<div class="wheel-receipt"><small id="wheel-caption" role="status"></small><strong id="wheel-value" class="wheel-readout"></strong></div>'+
+    '<div class="wheel-actions"></div></div>';
+  syncWheelReceipt();
 }
-function wheelTravel(t){
-  const acceleration=.16,tail=(1-acceleration)/4,total=acceleration/2+tail;
-  if(t<acceleration)return t*t/(2*acceleration*total);
-  const remaining=(1-t)/(1-acceleration);
-  return (acceleration/2+tail*(1-remaining**4))/total;
+function syncWheelReceipt(won=false){
+  const root=$('#scr-wheel'),p=SAVE.progression,today=UI.eventDay=calendarDay(),free=today>p.freeSpinDay;
+  const last=p.lastPrize,caption=$('#wheel-caption',root),readout=$('#wheel-value',root),actions=$('.wheel-actions',root);
+  const hadFocus=document.activeElement===actions.querySelector('[data-act=spinWheel]');
+  const name=last?wheelPrizeLabel(last):'';
+  caption.textContent=last?tr(won?'wheelWon':'wheelLast'):'';
+  if(won)caption.setAttribute('aria-label',caption.textContent+' '+name);
+  else caption.removeAttribute('aria-label');
+  readout.innerHTML=last?glyph(wheelIcon(last))+name:wheelDots;
+  readout.classList.toggle('payout',won);
+  const body=$('.wheel-body',root),disc=$('#wheel-disc',root);
+  const angle=wheelStop(last);
+  disc.style.setProperty('--wheel-angle',angle+'deg');
+  markWheelSector(disc,wheelSector(angle));
+  body.style.setProperty('--wheel-accent',wheelMetal(last||WHEEL_PRIZES[0]));
+  body.dataset.phase=won?'won':'idle';
+  $('#wheel-wallet',root).textContent=walletText();
+  if(won)bump($('#wheel-wallet',root).parentNode);
+  actions.innerHTML=actionButton('spinWheel',tr(free?'wheelFree':'wheelPaid',{n:WHEEL_COST}),free?'wheel':'coins','primary',UI.wheelBusy)+
+    (last?.knife?'<button class="action soft" data-act="previewPrize" data-knife="'+last.knife+'">'+iconLabel('knife',tr('fullPreview'))+'</button>':'');
+  if(hadFocus)actions.querySelector('[data-act=spinWheel]').focus({preventScroll:true});
+}
+function markWheelSector(disc,sector){
+  disc.querySelector('.wheel-piece.active')?.classList.remove('active');
+  disc.querySelectorAll('.wheel-piece')[sector].classList.add('active');
+  disc.style.setProperty('--wheel-focus',sector*wheelTurn+'deg');
+}
+const WHEEL_COAST=2480,WHEEL_LINGER=3180,WHEEL_DURATION=4570;
+function wheelMotion(previous,result){
+  const start=wheelStop(previous),end=wheelStop(result)+4*360,span=end-start;
+  // Time, angle and angular velocity. The closing stages are tied to physical wedge boundaries.
+  return [[0,start,0],[620,start+span*.145,span*.000464],[1440,start+span*.53,span*.000450],
+    [WHEEL_COAST,end-108,.124],[WHEEL_LINGER,end-44,.064],[3720,end-21,.034],[WHEEL_DURATION,end,0]];
+}
+function wheelAngleAt(motion,ms){
+  let i=1;
+  while(i<motion.length-1&&ms>motion[i][0])i++;
+  const [t0,a0,v0]=motion[i-1],[t1,a1,v1]=motion[i],dt=t1-t0,u=clamp((ms-t0)/dt,0,1);
+  // Hermite keeps the speed continuous across the launch, brake, and last pegs.
+  return lerp(a0,a1,u*u*(3-2*u))+dt*u*(1-u)*((1-u)*v0-u*v1);
 }
 function animateWheel(previous,result,view){
-  const disc=$('#wheel-disc'),assembly=disc.parentNode,pointer=$('.wheel-pointer',assembly);
-  const start=wheelStop(previous),end=wheelStop(result)+5*360,labels=disc.querySelectorAll('.wheel-piece');
-  if(globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches){
-    disc.style.setProperty('--wheel-angle',end+'deg');
-    return;
-  }
-  assembly.classList.add('spinning');
+  if(globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches)return;
+  const root=$('#scr-wheel'),disc=$('#wheel-disc',root),body=$('.wheel-body',root),pointer=$('.wheel-pointer',root);
+  const caption=$('#wheel-caption',root),readout=$('#wheel-value',root);
+  const motion=wheelMotion(previous,result);
+  let phase='spin',last=wheelSector(motion[0][1]),pawl;
+  body.dataset.phase=phase;caption.removeAttribute('aria-label');caption.textContent=tr('wheelSpinning');
+  readout.classList.remove('payout');readout.innerHTML=wheelDots;
   const begin=performance.now();
-  let last=-1;
   return new Promise(resolve=>{
     function tick(now){
       if(UI.view!==view||!disc.isConnected){resolve();return;}
-      const progress=Math.min(1,Math.max(0,(now-begin)/3870)),angle=lerp(start,end,wheelTravel(progress));
+      const ms=now-begin,angle=wheelAngleAt(motion,ms),sector=wheelSector(angle),changed=sector!==last;
       disc.style.setProperty('--wheel-angle',angle+'deg');
-      const sector=((Math.round(-angle/wheelTurn)%labels.length)+labels.length)%labels.length;
-      if(sector!==last){
-        if(last>=0)labels[last].classList.remove('active');
-        if(progress>.58){
-          labels[sector].classList.add('active');
-          assembly.classList.toggle('coasting',wheelPremium(WHEEL_PRIZES[WHEEL_DISPLAY[sector]]));
-          sfx('wheelTick');
-          pointer.animate?.([{rotate:'-12deg'},{rotate:'2deg'},{rotate:'0deg'}],{duration:160,easing:'ease-out'});
-        }
-        last=sector;
+      const next=ms>=WHEEL_DURATION?'settled':ms>=WHEEL_LINGER?'linger':ms>=WHEEL_COAST?'coast':'spin';
+      const slow=next!=='spin',prize=WHEEL_PRIZES[WHEEL_DISPLAY[sector]];
+      if(slow&&(changed||phase!==next)){
+        markWheelSector(disc,sector);
+        body.style.setProperty('--wheel-accent',wheelMetal(prize));
+        readout.innerHTML=glyph(wheelIcon(prize))+(prize.knife?byLanguage(KNIFE_BY_ID[prize.knife]):wheelSectorLabel(prize));
       }
-      if(progress<1)requestAnimationFrame(tick);else resolve();
+      if(changed&&!document.hidden){
+        sfx('wheelTick',{slow,highlight:wheelPremium(prize)});
+        pawl?.cancel();
+        pawl=pointer.animate?.([{rotate:slow?'-15deg':'-8deg'},{rotate:'3deg',offset:.57},{rotate:'0deg'}],
+          {duration:slow?176:86,easing:'ease-out'});
+      }
+      if(phase!==next){phase=next;body.dataset.phase=next;}
+      last=sector;
+      if(ms<WHEEL_DURATION){requestAnimationFrame(tick);return;}
+      pawl?.cancel();
+      pointer.animate?.([{rotate:'-4deg'},{rotate:'3deg',offset:.53},{rotate:'0deg'}],{duration:176,easing:'ease-out'});
+      sfx('wheelLock');vib(9,true);
+      setTimeout(resolve,210);
     }
     requestAnimationFrame(tick);
   });
@@ -5806,25 +5952,24 @@ async function playWheel(){
   if(UI.screen!=='wheel'||UI.wheelBusy||UI.notice)return false;
   UI.wheelBusy=true;
   const view=UI.view,previous=SAVE.progression.lastPrize;
-  let reveal=null,short=false;
+  let won=null,short=false;
   const button=$('#scr-wheel [data-act=spinWheel]');button.setAttribute('aria-disabled','true');button.setAttribute('aria-busy','true');
   try{
     const result=await withRewardSave(()=>UI.view===view?drawWheelPrize():null);
     if(!result){short=UI.view===view;return false;}
     stats?.action('wheel_spin',result.free?'free-spin':'coin-spin');
     if(UI.view!==view)return true;
-    $('#wheel-receipt').textContent=tr('wheelSpinning');sfx('ui');
+    AUD.wheelDucking=AUD.on;audApply();sfx('wheelStart');
     await animateWheel(previous,result,view);
-    if(UI.view===view){
-      if(wheelPremium(result))reveal=result;
-      else{sfx('coin');vib(12);}
-    }
+    if(UI.view===view)won=result;
     return true;
   }finally{
-    UI.wheelBusy=false;
+    UI.wheelBusy=false;AUD.wheelDucking=false;audApply();
     if(UI.screen==='wheel'){
-      renderWheel();
-      if(reveal)showPrize(reveal);else if(short)showShortfall(WHEEL_COST);
+      syncWheelReceipt(!!won);
+      if(wheelPremium(won))showPrize(won,true);
+      else if(won){sfx('wheelCoins');vib(12,true);}
+      else if(short)showShortfall(WHEEL_COST);
     }
   }
 }
@@ -5873,11 +6018,16 @@ function itemModel(id){return '<canvas class="kit-model" aria-hidden="true" data
 const kitMeshes={},pickupProfiles={};
 function pickupCollider(o,y,t){
   if(!pickupProfiles[o.id])kitModelMesh(o.id);
-  const a=.10*Math.sin(t+o.phase),c=Math.cos(a),s=Math.sin(a);
-  if(!o.collider)o.collider={pc:{x:o.x,y,z:0,bb:[-.8,-.8,.8,.8],sections:[]}};
+  const {parts,hz}=pickupProfiles[o.id],a=pickupAngle(o,t);
+  if(!o.collider)o.collider={pc:{x:o.x,y,z:0,bb:[-.8,-.8,.8,.8],hz}};
   const pc=o.collider.pc;pc.x=o.x;pc.y=y;
   if(pc.angle===a)return o.collider;pc.angle=a;
-  pc.sections=pickupProfiles[o.id].map(poly=>poly.map(([x,v])=>[c*x-s*v,s*x+c*v]));
+  const c=Math.cos(a),s=Math.sin(a);
+  // Pickups use the model's projected hulls directly and never enter the rigid-piece slicer.
+  pc.sections=pc.formSections=parts.map(part=>{
+    const poly=part.map(([x,v])=>[c*x-s*v,s*x+c*v]);
+    poly.z0=part.z0;poly.z1=part.z1;return poly;
+  });
   return o.collider;
 }
 function kitModelMesh(id){
@@ -5974,11 +6124,18 @@ function kitModelMesh(id){
     }
   }
   if(POWER_BY_ID[id]?.seconds){
-    const ct=Math.cos(.27),st=Math.sin(.27);
-    pickupProfiles[id]=hulls.map(h=>{
-      const pts=[];for(const poly of h.polys)for(let i=0;i<poly.length;i+=PS)pts.push([.83*poly[i],.83*(ct*poly[i+1]-st*poly[i+2])]);
-      return convexLoop(pts);
+    const ct=Math.cos(PICKUP_LEAN),st=Math.sin(PICKUP_LEAN);
+    let hz=0;
+    const parts=hulls.map(h=>{
+      const pts=[];let z0=Infinity,z1=-Infinity;
+      for(const poly of h.polys)for(let i=0;i<poly.length;i+=PS){
+        const y=poly[i+1],z=poly[i+2],depth=PICKUP_SCALE*(st*y+ct*z);
+        pts.push([PICKUP_SCALE*poly[i],PICKUP_SCALE*(ct*y-st*z)]);
+        z0=Math.min(z0,depth);z1=Math.max(z1,depth);
+      }
+      const part=convexLoop(pts);part.z0=z0;part.z1=z1;hz=Math.max(hz,-z0,z1);return part;
     }).filter(p=>p.length>=3);
+    pickupProfiles[id]={parts,hz};
   }
   return kitMeshes[id]=bakeMesh(hulls);
 }
@@ -5988,7 +6145,7 @@ function drawModelCards(root,knives=false){
     const id=knives?cv.dataset.knife:cv.dataset.model,mesh=knives?knifeMesh(id):kitModelMesh(id),ctx=cv.getContext('2d'),w=cv.width,h=cv.height;
     const yaw=-.34, pitch=id==='feather'?.25:.40,roll=knives?.27:id==='feather'?.55:-.12, sy=Math.sin(yaw),cy=Math.cos(yaw),sp=Math.sin(pitch),cp=Math.cos(pitch),sr=Math.sin(roll),cr=Math.cos(roll);
     const turn=(x,y,z)=>{const X=x*cy+z*sy,Z=-x*sy+z*cy,Y=y*cp-Z*sp;return [cr*X-sr*Y,sr*X+cr*Y,y*sp+Z*cp];};
-    const faces=[],f=mesh.f,scale=POWER_BY_ID[id]?72:52;
+    const faces=[],f=mesh.f,scale=(POWER_BY_ID[id]?72:52)*(Number(cv.dataset.zoom)||1);
     for(let k=0;k<f.length;k+=PS*3){
       const v=[0,PS,PS*2].map(i=>turn(f[k+i],f[k+i+1],f[k+i+2]));
       const n=turn(f[k+3],f[k+4],f[k+5]),lit=.80+.20*Math.max(0,-.38*n[0]+.72*n[1]+.58*n[2]);
