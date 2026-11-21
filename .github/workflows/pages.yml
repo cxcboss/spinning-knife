@@ -18,12 +18,12 @@ jobs:
       url: ${{ steps.publish.outputs.page_url }}
     steps:
       - uses: actions/checkout@v6
+      - run: node scripts/build-wechat.cjs --check
       - run: node --test tests/*.test.cjs
       - uses: actions/configure-pages@v5
       - run: |
           mkdir site
-          sed 's/data-build="release"/data-build="playtest"/' '旋转飞刀.html' > site/index.html
-          cp playtest.js site/
+          sed 's/data-build="release"/data-build="playtest"/' '小刀飞飞飞.html' > site/index.html
           cp '微信小游戏图标-144-AI版.png' site/icon.png
       - uses: actions/upload-pages-artifact@v4
         with:

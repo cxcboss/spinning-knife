@@ -1,0 +1,14 @@
+{
+  "appid": "wx3549cc0b0a3d781b",
+  "projectname": "小刀飞飞飞",
+  "description": "点击起跳，空中补跳，切开目标并让小刀稳稳插上下一根柱子。",
+  "compileType": "game",
+  "libVersion": "latest",
+  "setting": {
+    "es6": true,
+    "minified": true,
+    "urlCheck": true,
+    "uploadWithSourceMap": false
+  },
+  "packOptions": {"ignore": [{"type":"file","value":"project.private.config.json"}]}
+}

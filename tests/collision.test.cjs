@@ -5,7 +5,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 
 // Exercise the shipped single-file game without starting its browser renderer.
-const html = fs.readFileSync(path.join(__dirname, '..', '旋转飞刀.html'), 'utf8');
+const html = fs.readFileSync(path.join(__dirname, '..', '小刀飞飞飞.html'), 'utf8');
 const source = html.split('<script>')[1].split('\ntry { boot();')[0];
 function scene() {
   const api = vm.runInNewContext(source + `

@@ -1,7 +1,7 @@
 const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');
-const html=fs.readFileSync(path.join(__dirname,'..','旋转飞刀.html'),'utf8');
+const html=fs.readFileSync(path.join(__dirname,'..','小刀飞飞飞.html'),'utf8');
 const code=html.split('<script>')[1].split('\ntry { boot();')[0];
 
 function game(storage=new Map(),navigator={}){
@@ -13,8 +13,8 @@ function game(storage=new Map(),navigator={}){
   const api=vm.runInNewContext(code+`
     GFX.batch=()=>{resources.live++;return {addMesh(){},flat(){},clear(){},dispose(){resources.live--;}}};
     UI.stage=$('#stage');Game.onFail=showFail;Game.onFinish=showResult;
-    ({ G,UI,SC,Game,SAVE,SAVE_KEY,PHYS,ENDLESS_QUOTA_KEY,canRevive,spendCoins,saveLoad,startEndless,act,
-      endlessRemaining,endlessQuota,grantEndlessShare,newEndlessLevel,extendEndlessLevel,trimEndlessLevel,
+    ({ G,UI,SC,Game,rewardedVideo,SAVE,SAVE_KEY,PHYS,ENDLESS_QUOTA_KEY,canRevive,spendCoins,saveLoad,saveWrite,startEndless,act,
+      endlessRemaining,endlessQuota,issueDuel,openDuel,startDuel,completeDuel,duelQuery,newEndlessLevel,extendEndlessLevel,trimEndlessLevel,
       planHop,simHop,newKnife,padAt,useRevive,gFinishResult,knifeFell,gEvents,streamEndless })
   `,{resources,navigator,URLSearchParams,location:{search:''},document:{querySelector:node,documentElement:{style:{setProperty(){}}}},requestAnimationFrame(){},setTimeout(){},
     localStorage:{getItem:k=>storage.get(k),setItem:(k,v)=>storage.set(k,v)}});
@@ -28,53 +28,61 @@ function lose(a,extraCoins=0){
   assert.equal(a.G.mode,'failed');
 }
 
-test('默认开三局，分享每次增加两局且当天最多三次，取消不加局数',async()=>{
-  const updates=[];
-  let complete;
-  const a=game(new Map(),{share(data){
-    updates.push(data);
-    return new Promise(resolve=>{complete=resolve;});
-  }});
+test('系统分享发送或取消均不加次数；好友免费完赛回传后，原设备每天最多领三份',async()=>{
+  let finish;
+  const cards=[];
+  const inviter=game(new Map(),{share(data){cards.push(data);return new Promise(resolve=>{finish=resolve;});}});
+  const guest=game();
+  for(let i=0;i<3;i++){inviter.UI.screen='endless';assert(await inviter.startEndless());}
+  inviter.UI.screen='endless';
+  const cancelled=inviter.act('shareEndless');
+  assert.equal(await inviter.act('shareEndless'),false);
+  finish(Promise.reject(Object.assign(new Error('closed'),{name:'AbortError'})));
+  assert.equal(await cancelled,false);
+  assert.equal(inviter.endlessRemaining(),0);
   for(let i=0;i<3;i++){
-    a.UI.screen='endless';
-    assert(await a.startEndless());
-    assert.equal(a.endlessRemaining(),2-i);
+    const request=inviter.act('shareEndless');finish();assert(await request);
+    assert.equal(inviter.endlessRemaining(),i*2);
+    const id=new URL(cards.at(-1).url).searchParams.get('duel');
+    assert.equal(inviter.openDuel(id).kind,'own');
+    assert.equal(guest.openDuel(id).kind,'invite');
+    assert(guest.startDuel(id));assert.equal(guest.completeDuel(guest.G.frenzy),null);
+    const run=guest.G.frenzy;
+    // Play using the public input path until the 45-second clock actually settles.
+    for(let n=0;n<4500&&!run.result;n++){
+      if(n%15===0)guest.Game.tapFrenzy(.5+Math.sin(n)*.4,.5);
+      guest.Game.update(1/60);
+    }
+    assert(run.result.reply&&run.result.slices>0);
+    const reply=run.result.reply;
+    assert.equal(guest.endlessRemaining(),3);
+    assert.equal(guest.openDuel(id,reply.score).kind,'score');
+    assert.equal(guest.openDuel(id).reply.score,reply.score);
+    assert.equal(inviter.openDuel(id,String(reply.score)).kind,'reward');
+    assert.equal(inviter.openDuel(id,reply.score).kind,'claimed');
+    assert.equal(game(inviter.storage).endlessRemaining(),(i+1)*2);
   }
-  a.UI.screen='endless';
-  assert.equal(await a.startEndless(),false);
-  const first=a.act('shareEndless');
-  assert.equal(await a.act('shareEndless'),false);
-  complete(Promise.reject(Object.assign(new Error('closed'),{name:'AbortError'})));
-  assert.equal(await first,false);
-  assert.equal(a.endlessRemaining(),0);
-  for(let i=0;i<3;i++){
-    const share=a.act('shareEndless');
-    complete();
-    assert(await share);
-    assert.equal(a.endlessRemaining(),2*(i+1));
-  }
-  assert.equal(await a.act('shareEndless'),false);
-  assert.equal(updates.length,4);
-  assert.equal(updates[0].url,'https://cxcboss.github.io/spinning-knife/');
-  const restored=game(a.storage),day=restored.endlessQuota().day;
-  assert.equal(restored.endlessRemaining(),6);
-  assert.equal(restored.endlessRemaining(restored.endlessQuota(day+1)),3);
+  assert.equal(await inviter.act('shareEndless'),false);
 });
 
-test('旧版当日开局继续计入，分享凭据去重并按日期计数',()=>{
+test('挑战码按本地日期过期，兼容旧开局记录且不会为其他设备的回执加局数',()=>{
   const a=game(),day=a.endlessQuota().day;
   a.storage.set(a.ENDLESS_QUOTA_KEY,JSON.stringify({day,started:4,receipts:[]}));
   assert.equal(a.endlessRemaining(),0);
-  assert.equal(a.endlessQuota().started,4);
-  assert(!a.grantEndlessShare({day:day-1,id:'previous-day'}));
-  assert(a.grantEndlessShare({day,id:'share-today'}));
-  assert(!a.grantEndlessShare({day,id:'share-today'}));
+  const id=a.issueDuel();
+  assert.equal(a.openDuel('invalid',12).kind,'expired');
+  assert.equal(a.openDuel(id,'12x').kind,'expired');
+  assert.equal(a.openDuel((day-1).toString(36)+id.slice(id.indexOf('-')),12).kind,'expired');
+  assert.equal(game().openDuel(id,12).kind,'score');
+  assert.equal(a.openDuel(id,'12').kind,'reward');
   assert.equal(a.endlessRemaining(),1);
+  assert.equal(a.endlessRemaining(a.endlessQuota(day+1)),3);
 });
 
 test('两种复活都能先用或后用，无尽结束只结算一次且续命不扣次数',async()=>{
   for(const first of ['item','ad']){
     const a=game(),second=first==='ad'?'item':'ad';
+    a.rewardedVideo.provider={available:p=>p==='revive',show:async()=>true};
     a.SAVE.stock.revival=2;
     a.UI.screen='endless';assert(await a.startEndless());
     lose(a,12);
@@ -102,6 +110,7 @@ test('失败待结算时刷新，收入补发一次。旧版余额和已购装�
   assert.equal(a.SAVE.knife,'carrot');
   assert.equal(a.SAVE.stock.revival,0);
   assert.equal(a.SAVE.stock.gild,2);
+  a.SAVE.stock.revival=1; a.saveWrite();
   a.UI.screen='endless';assert(await a.startEndless());
   lose(a,34);
   assert.equal(a.SAVE.coins,1700);
@@ -151,6 +160,7 @@ test('无尽赛道随机变化，连续走到第八十柱后仍然只保留周�
 
 test('库存复活药水和广告复活也能在关卡模式中各用一次',async()=>{
   const a=game();
+  a.rewardedVideo.provider={available:p=>p==='revive',show:async()=>true};
   a.Game.start(0);a.SAVE.stock.revival=1;
   lose(a);
   assert(await a.useRevive('item'));
