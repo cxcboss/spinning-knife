@@ -38,6 +38,7 @@ async function main() {
       ...Object.keys(FINISH_SHOWS).map(k=>'finish-'+k),
       ...Object.keys(SLICEABLE).map(k=>'material-'+k),
       ...KNIVES.flatMap(k=>['launch','stick','slice','preview'].map(n=>n+':'+k.id)),
+      ...TIMED_POWERS.map(item=>'power-'+item.id),
       ...THEMES.map((_,i)=>'music-'+i),'music-bench','music-fast'
     ]);
     const bank=[],index={}; let frames=0;
@@ -57,6 +58,7 @@ async function main() {
           for(clock=0;clock<seconds;clock+=.1)musicTick();}
         else if(name.startsWith('material-'))materialSound(name.slice(9),KNIVES[0]);
         else if(name.startsWith('finish-'))sfx('finish',{m:Number(name.slice(7))});
+        else if(name.startsWith('power-'))sfx('power',POWER_BY_ID[name.slice(6)]);
         else{const [effect,id]=name.split(':');sfx(effect,{knife:KNIFE_BY_ID[id]||KNIVES[0]});}
         const pcm=(await off.startRendering()).getChannelData(0);let n=pcm.length;
         if(!music){while(n>1&&Math.abs(pcm[n-1])<.00012)n--;n=Math.min(pcm.length,n+150);}

@@ -1608,9 +1608,9 @@ function settleFinishBands(T,K,last){
 }
 function drawFinishBands(T,t){
   const ch=T.change,u=ch?.start!=null?sstep(0,.5,t-ch.start):0;
-  for(let i=0;i<T.blocks.length;i++){
+  for(const i of SC.movingBands){
     const b=T.blocks[i],h=b.y1-b.y0;let x=T.x0+FINISH.width/2,y=b.y0+h/2,z=0;
-    if(u&&ch&&(i===ch.a||i===ch.b)){
+    if(u){
       const direction=i===ch.a?1:-1,other=T.blocks[i===ch.a?ch.b:ch.a];
       y+=u*(other.y0-b.y0);x+=direction*.16*Math.sin(Math.PI*u);z+=direction*.40*Math.sin(Math.PI*u);
     }
@@ -2396,7 +2396,7 @@ function nextHasMover(W, pi) { const q = padAt(W,pi + 1); return !!(q && (q.mv |
  * ============================================================ */
 const SC = {
   L: null, W: null, T: null, statB: null, shadeB: null, dynO: null, dynT: null, dynA: null, cloudB: null,
-  objs: [], flyers: [], mvMesh: {}, cpMesh: [], chimneys: [], rn: null, ready: false,
+  objs: [], flyers: [], mvMesh: {}, cpMesh: [], chimneys: [], movingBands: [], rn: null, ready: false,
   sections: [], solidLayers: [], shadeLayers: [],
 };
 const CAM = { dirx: -0.365, diry: 0.168, dirz: 0.913, fov: 0.92, wvis: 7.4, maxAspect: 0.62 };   // eye direction (unit) from the target, vertical FOV (rad)
@@ -2471,6 +2471,14 @@ function scBakeTerrain(S,part){
 }
 function scBakeTower(S,tw){
   const T=SC.T;
+  // Fixed bands share the terrain buffer. Only the pair that swaps needs a per-frame pose.
+  SC.movingBands.length=0;
+  for(let i=0;i<tw.blocks.length;i++){
+    const band=tw.blocks[i],mesh=finishBandMesh(band.m,band.y1-band.y0);
+    if(tw.change&&(i===tw.change.a||i===tw.change.b))SC.movingBands.push(i);
+    else S.addMesh(mesh,tw.x0+FINISH.width/2,(band.y0+band.y1)/2,0,null,1,null);
+  }
+  finishSignMesh(LANG);
   const cap=hBox(tw.x0+FINISH.width/2,tw.topY+FINISH.cap/2,0,(FINISH.width+FINISH.lip)/2,FINISH.cap/2,1.15,hexc('#e9e9ee'));
   S.addMesh(bakeMesh([cap]),0,0,0,null,1,null);
   const x0 = tw.x0 - FINISH.lip, x1 = tw.x0 + FINISH.width + FINISH.lip;
@@ -3176,7 +3184,7 @@ function applyCut(e) {
     G.dailyHits++;
     fxPopup(pc.x, pc.y+.62,'+1','#ffe389',26,.82,1.3);
   }
-  if (val&&(G.nPops < 30 || val >= 5)) fxPopup(pc.x + rr2(-0.15, 0.15), pc.y + 0.4, (crit ? tr('critical') + ' +' : '+') + val, crit ? '#ffda80' : val >= 30 ? '#fff6b0' : '#ffffff', val >= 30 ? 26 : val >= 5 ? 22 : 15, val >= 30 ? 1.1 : 0.85, 1.7, e.rank * 0.015);
+  if (val&&(FX.pops.length < 30 || val >= 5)) fxPopup(pc.x + rr2(-0.15, 0.15), pc.y + 0.4, (crit ? tr('critical') + ' +' : '+') + val, crit ? '#ffda80' : val >= 30 ? '#fff6b0' : '#ffffff', val >= 30 ? 26 : val >= 5 ? 22 : 15, val >= 30 ? 1.1 : 0.85, 1.7, e.rank * 0.015);
   if (o.t === 'emoji' || o.t === 'money') { G.cam.shake = Math.max(G.cam.shake, 0.14); fxSparks(pc.x, pc.y, 6, hexc('#fff3a0'), 5, true); sfx(o.t === 'money' ? 'coin' : 'pop'); }
   else if (o.t === 'tires'||o.t==='piggy') G.cam.shake = Math.max(G.cam.shake, 0.07);
   if (o.pcs.every((x) => x.state !== 0)) o.dead = true;
@@ -3212,7 +3220,6 @@ function fxOverlay(ctx, w, h) {
   }
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
   const k = Math.min(w, h * 0.62) / 420;
-  G.nPops = FX.pops.length;
   for (const p of FX.pops) {
     if (p.t < 0) continue;
     const f = p.t / p.life, sp = GFX.project(p.x, p.y + p.vy * p.t, p.z);
@@ -3248,7 +3255,7 @@ function fxText(x, y, text, col, size, life, vy) { FX.texts.push({ x, y, text, c
 const CAMLEAD = 1.9, CAMUP = 2.2, FOV0 = 0.92;
 const G = {
   mode: 'idle', endless:null, frenzy:null, L: null, W: null, K: null, idx: 0, demo: false, acc: 0, ts: 1, tsT: 0, time: 0,
-  coins: 0, coinsShown: 0, cut: 0, total: 0, deaths: 0, combo: 0, hops: 0, perfects: 0, sliceCombo: 0, sliceComboT: 0, nPops: 0,
+  coins: 0, coinsShown: 0, cut: 0, total: 0, deaths: 0, combo: 0, hops: 0, perfects: 0, sliceCombo: 0, sliceComboT: 0,
   cp: null, cam: { x: 0, y: 0, sx: 0, sy: 0, shake: 0, top: 0, pulse: 0, width: CAM.wvis }, tapQ: false, dead: false, deadT: 0, fin: null, res: null, wob: { t: 9, err: 0 },
   bot: { plan: null, wait: 0, tl: 0, tapped: false },  hint: null, startX: 0, endX: 1, idleT: 0, progress: 0, skin: 'chef', prevMode: 'play', fallLast: 0,
 };
@@ -3274,11 +3281,7 @@ function activatePower(item){
   const K=G.K;
   G.powerEnds[item.id]=K.t+item.seconds;
   if(item.id==='triple')K.tripleUntil=G.powerEnds.triple;
-
-  if(AUD.ctx&&AUD.on){
-    const t=AUD.ctx.currentTime+.006;
-    [0,4,7].forEach((interval,j)=>{const f=NOTE(item.note+interval);tone('sine',f,f,t+j*.045,.17,.10);});
-  }
+  sfx('power',item);
 }
 function powerCoinValue(value){return G.K.t<G.powerEnds.goldrush?value*2:value;}
 function pickupY(o,t){return o.y+.18*Math.sin(t*2.4+o.phase);}

@@ -325,13 +325,15 @@ function adapt(ms){
 function schedule(){if(ready&&!hidden&&!graphicsLost&&frameId===null)frameId=later(frame);}
 function frame(stamp){
   frameId=null;if(!ready||hidden||graphicsLost)return;
+  // Reserve the next frame before calling the game and native APIs. onHide can still cancel it.
+  schedule();
   const t=Number.isFinite(stamp)?stamp:now();
   let ms=clock.last?t-clock.last:1000/60;clock.last=t;
   if(!(ms>0)||ms>1500)ms=1000/60;
   const dt=Math.min(ms/1000,.12);
   if(UI.screen==='home'||UI.screen==='play')Game.update(dt);
   if(t>=nightCheck){nightCheck=t+1000;if(e.calendarDay()!==state.day){state.day=e.calendarDay();invalidate();}}
-  draw(t,dt);adapt(ms);schedule();
+  draw(t,dt);adapt(ms);
 }
 function background(){
   hidden=true;if(frameId!==null){cancel(frameId);frameId=null;}pointer=null;state.pressed='';UI.modelPressed=false;

@@ -5,12 +5,14 @@ const {viewport}=require('../wechat/platform');
 const createEngine=require('../wechat/engine');
 const createInterface=require('../wechat/interface');
 const createRewards=require('../wechat/rewards');
+const createAudio=require('../wechat/audio');
+const cues=require('../wechat/assets/sounds');
 
-function game() {
+function game(sound=()=>{}) {
   const store=new Map();
   const rewards=createRewards({createRewardedVideoAd(){assert.fail('Inactive placements created a video');}});
   const e=createEngine({storage:{getItem:k=>store.get(k),setItem:(k,v)=>store.set(k,v)},timing:{},rewards,
-    open(){},toast(){},sound(){},vibrate(){}});
+    open(){},toast(){},sound,vibrate(){}});
   e.GFX.batch=()=>({addMesh(){},clear(){},flat(){},dispose(){}});
   e.initSave();e.Game.start(0);
   return e;
@@ -60,4 +62,61 @@ test('原生包使用同一套好友挑战规则，完成的成绩可以重发�
   a.initSave();
   assert.equal(a.openDuel(id,run.result.score).kind,'claimed');
   assert.equal(a.endlessRemaining(),5);
+});
+
+test('微信包在最后一跳拾取三种限时补给后都能命中终点且只结算一次',()=>{
+  const played=[];
+  const e=game((name,options)=>{if(name==='power')played.push(options.id);});
+  for(const item of e.TIMED_POWERS){
+    e.Game.start(0);
+    const {G,Game}=e,last=G.W.pl[G.W.pl.length-1];
+    G.K.sp=last.id;G.K.sx=last.land;
+    Game.update(e.PHYS.DT);
+    const pickup={id:item.id,x:last.land+.85,y:G.K.y+.55,phase:0,taken:false};
+    G.pickups=[pickup];
+    const results=[];
+    Game.onFinish=r=>results.push(r);
+    Game.tap();
+    for(let frame=0;frame<260;frame++){
+      if(frame===20)Game.tap();
+      Game.update(1/60);
+    }
+    assert.ok(pickup.taken,item.id);
+    assert.ok(G.powerEnds[item.id]>=item.seconds,item.id);
+    assert.equal(G.K.mode,'done',item.id);
+    assert.equal(results.length,1,item.id);
+    assert.equal(results[0].mult,G.K.mult);
+    assert.ok(results[0].finishBonus>0);
+  }
+  assert.deepEqual(played,e.TIMED_POWERS.map(item=>item.id));
+  for(const id of played)assert.ok(cues['power-'+id]?.[1]>0);
+});
+
+test('微信播放通道暂时失效时，补给不会打断游戏，终点仍能播放自己的音效',()=>{
+  const played=[];
+  let disconnected=0;
+  const context={
+    decodeAudioData(data,ready){ready({});},
+    createBufferSource(){return {
+      connect(){},disconnect(){disconnected++;},
+      start(when,offset,duration){
+        played.push([offset,duration]);
+        if(played.length===1)throw Error('audio interrupted');
+        this.onended();
+      },
+    };},
+  };
+  const sound=createAudio({createWebAudioContext:()=>context,
+    getFileSystemManager:()=>({readFile:opts=>opts.success({data:new ArrayBuffer(0)})})});
+  sound.init();
+  sound.sound('power',{id:'triple'});sound.sound('finish',{m:10});
+  assert.deepEqual(played,[cues['power-triple'],cues['finish-10']]);
+  assert.equal(disconnected,2);
+
+  let slots=0,attempts=0;
+  const fallback=createAudio({createInnerAudioContext(){
+    slots++;return {seek(){attempts++;throw Error('audio interrupted');},stop(){}};
+  }});
+  fallback.init();fallback.sound('power',{id:'goldrush'});fallback.sound('finish',{m:1});
+  assert.equal(attempts,2);assert.equal(slots,1);
 });
