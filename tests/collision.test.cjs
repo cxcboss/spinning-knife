@@ -164,3 +164,26 @@ test('复活点避开邻柱和尖刺，并留在原柱或附近', () => {
     assert.equal(k.mode,'air');
   }
 });
+
+test('30 关最后一跳在不同起点、倾角、补跳时机和三段跳下都落在计分区',()=>{
+  const {api}=scene(),dt=api.PHYS.DT;
+  for(let level=0;level<30;level++){
+    const world=api.genLevel(level).W,last=world.pl.at(-1),tower=world.tower;
+    for(const x of [last.x0+.04,last.land,last.x1-.04])
+      for(const lean of [-1.5,-.6,0,.6,1.5])
+        for(const tap of [-1,8,26,54,84,110])
+          for(const powered of [false,true]){
+            const k=api.newKnife(world,last.id,x);
+            Object.assign(k,{lean,a:lean-Math.PI/2,tripleUntil:powered?10:0,feather:powered?1.4:0});
+            for(let frame=0;frame<300&&k.mode!=='done';frame++){
+              api.stepKnife(k,dt,world,frame===0||frame===tap||(powered&&tap>0&&frame===tap+21));
+            }
+            const hits=k.ev.filter(ev=>ev.e==='finish');
+            assert.equal(hits.length,1);
+            assert(!k.ev.some(ev=>ev.e==='bounce'));
+            const hit=hits[0],band=tower.blocks.find(b=>hit.y>=b.y0&&hit.y<b.y1);
+            assert.equal(hit.m,band?.m??1);
+            assert(hit.y>=tower.yb-1.2 && hit.y<tower.topY);
+          }
+  }
+});

@@ -25,7 +25,7 @@ function model(g,assets,name,x,y,w,h){
 
 module.exports=function createInterface(e,state,assets){
   const {G,UI,SAVE,tr}=e;
-  let zones=[],vp,ctx,offsetY=0;
+  let zones=[],vp,ctx,offsetY=0,dailyCard=null,levelList=null;
   const lang=(zh,en)=>e.language==='zh'?zh:en;
   function hit(id,x,y,w,h){zones.push({id,x,y:y+offsetY,w,h});}
   function button(id,label,x,y,w,h,opts={}){
@@ -75,6 +75,7 @@ module.exports=function createInterface(e,state,assets){
     const {x,cx,content:w,top,bottom}=vp;
     const n=actions.length,h=106+rows.length*37+n*48;
     const y=top+Math.max(0,(bottom-top-h)/2);
+    if(UI.screen==='daily')dailyCard={x,y,w,h};
     box(ctx,x,y,w,h,23,panel,line);
     if(sub)text(ctx,sub,cx,y+25,13,gold,'center','bold',w-36);
     text(ctx,title,cx,y+(sub?56:44),26,ink,'center','bold',w-36);
@@ -111,23 +112,41 @@ module.exports=function createInterface(e,state,assets){
     },3,ix,y0+113,iw,36);
     grid([['levels','levels','levels'],['shop','knife','armory'],['supplies','pack','supplies'],['settings','gear','settings']],(a,l,t,ww,hh)=>button(a[0],tr(a[2]),l,t,ww,hh,{icon:a[1],stack:true,iconSize:19}),4,ix,y0+156,iw,51);
   }
+  function levels(){
+    const {x,content:w,top,bottom}=vp;
+    heading(tr('levels'));
+    const y=top+59,cols=3,gap=9,cellH=76,cellW=(w-(cols-1)*gap)/cols;
+    const fullHeight=Math.ceil(e.NUM_LEVELS/cols)*(cellH+gap)-gap;
+    levelList={top:y,bottom,max:Math.max(0,fullHeight-(bottom-y))};
+    state.levelScroll=Math.min(state.levelScroll||0,levelList.max);
+    ctx.save();ctx.beginPath();ctx.rect(x,y,w,bottom-y);ctx.clip();
+    for(let i=0;i<e.NUM_LEVELS;i++){
+      const rowY=y+Math.floor(i/cols)*(cellH+gap)-state.levelScroll;
+      const visibleTop=Math.max(y,rowY),visibleBottom=Math.min(bottom,rowY+cellH);
+      if(visibleBottom<=visibleTop)continue;
+      const left=x+(i%cols)*(cellW+gap),cx=left+cellW/2,open=e.isOpen(i),current=i===e.nextLevelIdx();
+      const id='level:'+i,fg=current?dark:open?ink:muted;
+      box(ctx,left,rowY,cellW,cellH,14,current?gold:state.pressed===id?'#47617a':tile,current?null:line);
+      text(ctx,String(i+1),cx,rowY+28,23,fg,'center','bold');
+      if(open){
+        const stars=SAVE.stars[i]||0;
+        text(ctx,'★'.repeat(stars)+'☆'.repeat(3-stars),cx,rowY+55,14,current?dark:gold);
+        hit(id,left,visibleTop,cellW,visibleBottom-visibleTop);
+      }else icon(ctx,assets,'lock',cx,rowY+54,15);
+    }
+    ctx.restore();
+  }
   function gallery(){
-    const {x,content:w,top:t,bottom:b}=vp, gear=UI.screen==='catalog';
-    heading(tr(gear?'allGear':'levels'));
-    const per=gear?9:18, list=gear?e.KNIVES:Array.from({length:e.NUM_LEVELS},(_,i)=>i);
-    const cells=list.slice(state.page*per,(state.page+1)*per);
+    const {x,content:w,top:t,bottom:b}=vp;
+    heading(tr('allGear'));
+    const cells=e.KNIVES.slice(state.page*9,(state.page+1)*9);
     grid(cells,(item,xx,yy,ww,hh)=>{
-      if(gear){
-        box(ctx,xx,yy,ww,hh,12,tile,line);model(ctx,assets,item.id,xx+5,yy+1,ww-10,hh-36);
-        text(ctx,e.byLanguage(item),xx+ww/2,yy+hh-25,14,ink,'center','bold',ww-8);
-        text(ctx,tr(item.id===SAVE.knife?'equipped':e.canEquip(item.id)?'owned':'notOwned'),xx+ww/2,yy+hh-10,10,muted);
-        hit('pick:'+item.id,xx,yy,ww,hh);
-      }else{
-        button('level:'+item,String(item+1),xx,yy,ww,hh,{disabled:!e.isOpen(item),primary:item===e.nextLevelIdx()});
-        if(SAVE.stars[item])text(ctx,'★'.repeat(SAVE.stars[item]),xx+ww/2,yy+hh-8,9,gold);
-      }
-    },gear?3:4,x,t+65,w,gear?Math.min(112,(b-t-130)/3-6):53);
-    pager(state.page,Math.ceil(list.length/per),x,b-44,w);
+      box(ctx,xx,yy,ww,hh,12,tile,line);model(ctx,assets,item.id,xx+5,yy+1,ww-10,hh-36);
+      text(ctx,e.byLanguage(item),xx+ww/2,yy+hh-25,14,ink,'center','bold',ww-8);
+      text(ctx,tr(item.id===SAVE.knife?'equipped':e.canEquip(item.id)?'owned':'notOwned'),xx+ww/2,yy+hh-10,10,muted);
+      hit('pick:'+item.id,xx,yy,ww,hh);
+    },3,x,t+65,w,Math.min(112,(b-t-130)/3-6));
+    pager(state.page,Math.ceil(e.KNIVES.length/9),x,b-44,w);
   }
   function armory(){
     const {x,cx,content:w,top:t,bottom:b}=vp,k=e.KNIVES[UI.shopIdx],owned=e.canEquip(k.id);
@@ -181,7 +200,7 @@ module.exports=function createInterface(e,state,assets){
     });pager(state.page,Math.ceil(list.length/5),x,b-44,w);
   }
   function settings(){
-    const {x,content:w,top:t,bottom:b}=vp;heading(tr('settings'));
+    const {x,content:w,top:t}=vp;heading(tr('settings'));
     const rows=[['sfx','speaker','sound'],['music','music','music'],['vib','vibration','vibration'],['language','lang','language'],['quality','quality','quality']];
     rows.forEach(([id,ico,k],i)=>{
       const y=t+60+55*i;box(ctx,x,y,w,48,13,tile,line);icon(ctx,assets,ico,x+25,y+24,19);
@@ -189,7 +208,6 @@ module.exports=function createInterface(e,state,assets){
       const value=id==='language'?(e.language==='zh'?'简体中文':'English'):id==='quality'?tr('q'+SAVE.opts.q):SAVE.opts[id]?lang('开','On'):lang('关','Off');
       text(ctx,value+'  ›',x+w-16,y+24,14,gold,'right');hit(id,x,y,w,48);
     });
-    if(state.settingsReturn==='home')button('reset',tr('reset'),x,b-44,w,42,{small:true});
   }
   function wheel(){
     const {x,cx,content:w,top:t,bottom:b}=vp;heading(tr('wheel'));
@@ -284,17 +302,19 @@ module.exports=function createInterface(e,state,assets){
       if(type==='ready')add('claimAchievement',tr('achievementClaim'),'trophy',true);
       if(type==='claimed')add('shareScore',tr('shareScore'),'share',true);
       if(item.knife)add('previewPrize',tr('fullPreview'),'knife');
-    }else if(page==='confirmReset'){
-      name=tr('eraseTitle');rows.push([tr('eraseBody'),'']);add('cancelReset',tr('cancel'),'back',true);add('confirmReset',tr('eraseConfirm'),'retry');
+
     }
     if(page==='achievement'){add('back',tr('back'),'back');}
-    else if(!['powers','confirmReset'].includes(page))add('home',tr('home'),'home');
+    else if(page==='daily')add('cancelDaily',tr('cancel'),'back');
+    else if(page!=='powers')add('home',tr('home'),'home');
     headerCard(name,sub,rows,a);
   }
   function paint(g,v){
     vp=v;ctx=g;offsetY=0;zones=[];const page=UI.screen;
+    dailyCard=null;levelList=null;
+    if(page==='daily'){home();zones=[];}
     if(!['home','shop'].includes(page))g.fillStyle='rgba(12,27,44,.76)',g.fillRect(0,0,v.w,v.h);
-    if(page==='home')home();else if(page==='levels'||page==='catalog')gallery();
+    if(page==='home')home();else if(page==='levels')levels();else if(page==='catalog')gallery();
     else if(page==='shop')armory();else if(page==='supplies')supplies();else if(page==='settings')settings();
     else if(page==='wheel')wheel();else if(page==='achievements')achievements();else dialog();
   }
@@ -321,6 +341,7 @@ module.exports=function createInterface(e,state,assets){
     offsetY=0;
   }
   function hint(g,width,height,str){box(g,0,1,width,height-2,16,panel,line);text(g,str,width/2,height/2,14,ink,'center','bold',width-19);}
-  return {paint,hud,hint,disc,prizeLabel,hitAt(x,y){return zones.find(z=>x>=z.x&&x<=z.x+z.w&&y>=z.y&&y<=z.y+z.h)?.id;},
-    clearHits(){zones=[];},zones:()=>zones.map(z=>({...z}))};
+  return {paint,hud,hint,disc,prizeLabel,hitAt(x,y){if(dailyCard && (x<dailyCard.x||x>dailyCard.x+dailyCard.w||y<dailyCard.y||y>dailyCard.y+dailyCard.h))return 'cancelDaily';
+    return zones.find(z=>x>=z.x&&x<=z.x+z.w&&y>=z.y&&y<=z.y+z.h)?.id;},
+    get levelList(){return levelList;},clearHits(){zones=[];dailyCard=null;levelList=null;},zones:()=>zones.map(z=>({...z}))};
 };

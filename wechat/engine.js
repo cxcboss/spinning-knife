@@ -1569,7 +1569,7 @@ function mkCheckpoint(def) {
   return { t: 'cp', def, x, y, passed: false, mesh: bakeWorld(hulls), flagMesh: bakeWorld(flagHull), x0: x - 1, x1: x + 1 };
 }
 /* multiplier tower at the end of a level. blocks: [{m, h}] bottom → top */
-const FINISH = { width: 2.2, lip: 0.1, band: 1.2, cap: 0.24 };
+const FINISH = { width: 2.2, band: 1.2 };
 const bandMeshes=new Map(),finishSignMeshes=new Map();
 function finishSignMesh(lang){
   if(finishSignMeshes.has(lang))return finishSignMeshes.get(lang);
@@ -1811,38 +1811,24 @@ function collideKnife(K, W, skipPad = -2, dt = PHYS.DT) {
   }
 }
 
-function hitFinish(K, T) {
-  if (!T || K.x + KNIFE_TIP < T.x0 - FINISH.lip || K.x - KNIFE_TIP > T.x0 + FINISH.width + FINISH.lip) return false;
-  const c = Math.cos(K.a), s = Math.sin(K.a);
-  const tx = K.x + KNIFE_TIP * c, ty = K.y + KNIFE_TIP * s;
-  const minY = T.yb - FINISH.band, maxY = T.topY + FINISH.cap;
-  let hitY = null, hitX, top = false;
-  // Check each physical band at its own front edge, including the projecting base and cap.
-  for (const [lo, hi, edge] of [[minY, T.yb, T.x0 - FINISH.lip], [T.yb, T.topY, T.x0], [T.topY, maxY, T.x0 - FINISH.lip / 2]]) {
-    if (c < Math.cos(BITE + K.grip) || K.ptx > edge || tx < edge || tx <= K.ptx) continue;
-    const y = lerp(K.pty, ty, (edge - K.ptx) / (tx - K.ptx));
-    if (y >= lo && y <= hi) { hitX = edge; hitY = y; break; }
-  }
-  if (hitY === null && K.pty >= maxY && ty <= maxY && ty < K.pty && -s >= Math.cos(BITE + K.grip)) {
-    const x = lerp(K.ptx, tx, (K.pty - maxY) / (K.pty - ty));
-    if (x >= T.x0 - FINISH.lip / 2 && x <= T.x0 + FINISH.width + FINISH.lip / 2) { hitY = maxY; hitX = x; top = true; }
-  }
-  if (hitY === null) {
-    for (const [lx, ly] of K.outline) {
-      const y = K.y + s * lx + c * ly, x = K.x + c * lx - s * ly;
-      const lip = y < T.yb ? FINISH.lip : y >= T.topY ? FINISH.lip / 2 : 0;
-      if (x < T.x0 - lip || x > T.x0 + FINISH.width + lip || y < minY || y > maxY) continue;
-      startSlip(K, -1, [T.x0, T.x0 + FINISH.width, maxY], -1); return true;
-    }
-    return false;
-  }
+function hitFinish(K, T, finalHop = false) {
+  if (!T || K.x + KNIFE_TIP < T.x0) return false;
+  const tx = K.x + KNIFE_TIP * Math.cos(K.a);
+  const ty = K.y + KNIFE_TIP * Math.sin(K.a);
+  const minY = T.yb - FINISH.band + .06, maxY = T.topY - .06;
+  if (!finalHop && (K.x > T.x0 + FINISH.width || ty < minY || ty > maxY)) return false;
+  if (tx < T.x0 && K.x < T.x0) return false;
+  const fraction = tx > K.ptx && K.ptx <= T.x0 ? clamp((T.x0 - K.ptx) / (tx - K.ptx), 0, 1) : 1;
+  const hitY = clamp(lerp(K.pty, ty, fraction), minY, maxY);
   let bi = T.blocks.length - 1;
   while (bi >= 0 && hitY < T.blocks[bi].y0) bi--;
   const m = bi < 0 ? 1 : T.blocks[bi].m;
   K.mode = 'done'; K.mult = m;
-  K.x = hitX + (top ? 0 : PHYS.SINK) - KNIFE_TIP * c;
-  K.y = hitY - (top ? PHYS.SINK : 0) - KNIFE_TIP * s; K.vx = K.vy = K.w = 0;
-  K.ev.push({ e: 'finish', m, bi, x: hitX, y: hitY });
+  K.a = clamp(wrapPI(K.a), -.32, .32);
+  K.x = T.x0 + PHYS.SINK - KNIFE_TIP * Math.cos(K.a);
+  K.y = hitY - KNIFE_TIP * Math.sin(K.a);
+  K.vx = K.vy = K.w = 0;
+  K.ev.push({ e: 'finish', m, bi, x: T.x0, y: hitY });
   return true;
 }
 
@@ -1895,7 +1881,17 @@ function advanceKnife(K, dt, W, tap) {
   K.vy += ay * dt; K.x += K.vx * dt; K.y += K.vy * dt; K.a += K.w * dt;
   K.spin = (K.spin + 1) | 0;
   if (K.nosync < 50 && K.spin % 5 === 0 && K.vy < 3) syncSpin(K, W, dt * 5, false);
-  if (hitFinish(K, W.tower)) return;
+  const finalHop = W.tower && K.ign === W.pl[W.pl.length - 1].id;
+  if (finalHop) {
+    // Guide the last rotation into the scoring face. Air taps still choose the height.
+    const distance = W.tower.x0 - KNIFE_TIP - K.x;
+    if (distance < 1.5) {
+      const blend = 1 - Math.exp(-dt * 22 * (1 - clamp(distance / 1.5, 0, 1)));
+      K.a += wrapPI(-K.a) * blend;
+      K.y = lerp(K.y, clamp(K.y, W.tower.yb - FINISH.band + .12, W.tower.topY - .12), blend);
+    }
+  }
+  if (hitFinish(K, W.tower, finalHop) || finalHop) return;
   if(hitSpikes(K,W))return;
   collideKnife(K, W);
   if (K.mode === 'air' && K.y < W.voidY) knifeFell(K, 'void');
@@ -2479,16 +2475,14 @@ function scBakeTower(S,tw){
     else S.addMesh(mesh,tw.x0+FINISH.width/2,(band.y0+band.y1)/2,0,null,1,null);
   }
   finishSignMesh(LANG);
-  const cap=hBox(tw.x0+FINISH.width/2,tw.topY+FINISH.cap/2,0,(FINISH.width+FINISH.lip)/2,FINISH.cap/2,1.15,hexc('#e9e9ee'));
-  S.addMesh(bakeMesh([cap]),0,0,0,null,1,null);
-  const x0 = tw.x0 - FINISH.lip, x1 = tw.x0 + FINISH.width + FINISH.lip;
-  bakeAdd(S, platformPolys(x0, x1, tw.yb, -45, -2.1, 2.1, T, 0.0));
+  const x0 = tw.x0, x1 = tw.x0 + FINISH.width;
+  bakeAdd(S, platformPolys(x0, x1, tw.yb, -45, -1.1, 1.1, T, 0.0));
   { // show the x1 scoring band on both sides the player sees
-    const y1 = tw.yb, y0 = y1 - FINISH.band, z = 2.105, x = x0 - 0.005, uv = atlUV('checker', 1);
+    const y1 = tw.yb, y0 = y1 - FINISH.band, z = 1.105, x = x0 - 0.005, uv = atlUV('checker', 1);
     const tex = [[uv[0], uv[3]], [uv[2], uv[3]], [uv[2], uv[1]], [uv[0], uv[1]]], white = [1, 1, 1, 1];
     bakeAdd(S, [
       mkPoly([[x0, y0, z], [x1, y0, z], [x1, y1, z], [x0, y1, z]], [0, 0, 1], white, tex),
-      mkPoly([[x, y0, -2.1], [x, y0, 2.1], [x, y1, 2.1], [x, y1, -2.1]], [-1, 0, 0], white, tex),
+      mkPoly([[x, y0, -1.1], [x, y0, 1.1], [x, y1, 1.1], [x, y1, -1.1]], [-1, 0, 0], white, tex),
     ]);
   }
 }

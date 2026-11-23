@@ -41,6 +41,7 @@ function go(page){
   if(UI.screen==='wheel'&&page!=='wheel')state.spin=null;
   if(page!==UI.screen){UI.view++;state.pressed='';pointer=null;ui?.clearHits();}
   UI.screen=page;
+  if(page==='levels')state.levelScroll=0;
   if(page==='home'){
     state.prizeBack=null;state.shopReturn='home';state.settingsReturn='home';
     if(!G.demo)Game.start(0,{demo:true});
@@ -178,9 +179,7 @@ function command(action){
       const r=G.res;e.grantReward('double',()=>page==='result'&&r===G.res&&!r.doubled,()=>{r.doubled=true;SAVE.coins+=r.total;e.saveWrite();invalidate();});break;
     }
     case 'settings':state.settingsReturn=page==='pause'?'pause':'home';go('settings');break;
-    case 'reset':go('confirmReset');break;
-    case 'cancelReset':go('settings');break;
-    case 'confirmReset':Object.assign(SAVE,{...e.freshSave(),opts:SAVE.opts});e.saveWrite();go('home');break;
+    case 'cancelDaily':if(page==='daily')go('home');break;
     case 'sfx':case 'music':case 'vib':SAVE.opts[id]=!SAVE.opts[id];e.saveWrite();soundtrack();invalidate();break;
     case 'language':e.setLanguage(e.language==='zh'?'en':'zh');invalidate();break;
     case 'quality':SAVE.opts.q=(SAVE.opts.q+1)%3;e.saveWrite();resize();break;
@@ -230,18 +229,34 @@ function tapPoint(t){return {x:(t.clientX??t.pageX)/vp.scale,y:(t.clientY??t.pag
 function tapStart(ev){
   if(!ready||hidden||graphicsLost||pointer)return;
   const touch=ev.changedTouches?.[0]||ev.touches?.[0];if(!touch)return;
-  const {x,y}=tapPoint(touch);if(y<vp.top||y>vp.bottom)return;
+  const {x,y}=tapPoint(touch);if(UI.screen!=='daily'&&(y<vp.top||y>vp.bottom))return;
   sound.init();soundtrack();
   const id=ui.hitAt(x,y);pointer={touch:touch.identifier,id,x,y,view:UI.view};
+  const list=ui.levelList;
+  if(UI.screen==='levels'&&list&&y>=list.top&&y<=list.bottom)pointer.scrollStart=state.levelScroll;
   if(id){state.pressed=id;invalidate();return;}
   if(UI.screen==='play'){if(G.frenzy)Game.tapFrenzy(x/vp.w,y/vp.h);else Game.tap();}
   else if(UI.screen==='shop')UI.modelPressed=true;
 }
+function scrollLevels(value){
+  const list=ui.levelList;
+  if(UI.screen!=='levels'||!list)return;
+  const next=Math.max(0,Math.min(list.max,value));
+  if(next!==state.levelScroll){state.levelScroll=next;invalidate();}
+}
+function moveLevelDrag(touch){
+  if(pointer?.scrollStart===undefined)return;
+  const dy=tapPoint(touch).y-pointer.y;
+  if(!pointer.dragged&&Math.abs(dy)<7)return;
+  if(!pointer.dragged){pointer.dragged=true;state.pressed='';invalidate();}
+  scrollLevels(pointer.scrollStart-dy);
+}
 function tapEnd(ev,aborted){
   if(!pointer)return;
   const touch=Array.from(ev.changedTouches||[]).find(t=>t.identifier===pointer.touch);if(!touch&&!aborted)return;
+  if(!aborted&&touch)moveLevelDrag(touch);
   const p=pointer;pointer=null;state.pressed='';UI.modelPressed=false;
-  if(aborted||p.view!==UI.view){invalidate();return;}
+  if(aborted||p.dragged||p.view!==UI.view){invalidate();return;}
   const {x,y}=tapPoint(touch),dx=x-p.x,dy=y-p.y;
   if(p.id){if(Math.hypot(dx,dy)<22&&ui.hitAt(x,y)===p.id)command(p.id);invalidate();}
   else if(UI.screen==='shop'){
@@ -361,10 +376,16 @@ async function start(){
   handleLink(queuedLink||wx.getLaunchOptionsSync?.().query);
   let lastTouch=0;
   wx.onTouchStart(ev=>{lastTouch=now();tapStart(ev);});
+  wx.onTouchMove(ev=>{
+    const touch=Array.from(ev.changedTouches||ev.touches||[]).find(t=>t.identifier===pointer?.touch);
+    if(touch)moveLevelDrag(touch);
+  });
   wx.onTouchEnd(ev=>{lastTouch=now();tapEnd(ev,false);});
   wx.onTouchCancel(ev=>tapEnd(ev,true));
   const mouseEvent=ev=>({changedTouches:[{identifier:'mouse',clientX:ev.x,clientY:ev.y}]});
   wx.onMouseDown?.(ev=>{if(ev.button===0&&now()-lastTouch>400)tapStart(mouseEvent(ev));});
+  wx.onMouseMove?.(ev=>{if(pointer?.touch==='mouse')moveLevelDrag(mouseEvent(ev).changedTouches[0]);});
+  wx.onWheel?.(ev=>{if(UI.screen==='levels')scrollLevels(state.levelScroll+ev.deltaY/vp.scale);});
   wx.onMouseUp?.(ev=>{if(ev.button===0&&pointer?.touch==='mouse')tapEnd(mouseEvent(ev),false);});
   wx.onWindowResize?.(resize);
   wx.showShareMenu?.({menus:['shareAppMessage']});wx.onShareAppMessage?.(share);

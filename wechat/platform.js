@@ -12,7 +12,7 @@ function viewport(info, capsule) {
   const menuBottom = capsule && capsule.width > 0 && capsule.bottom > capsule.top
     ? capsule.bottom - origin : safeTop + 36;
   const top = Math.max(menuBottom, safeTop) + 8;
-  const bottom = Math.max(top + 1, safeBottom - 10);
+  const bottom = Math.max(top + 1, Math.min(safeBottom - 20, height - 34));
   const scale = Math.max(.35, Math.min((right-left)/360, (bottom-top)/524, 1.6));
   const w = width/scale, h = height/scale;
   const safeWidth = (right-left)/scale;

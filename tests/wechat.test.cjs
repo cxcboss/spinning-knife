@@ -37,7 +37,7 @@ test('微信胶囊、刘海、灵动岛和底部手势区不遮挡操作，触�
       const zones=ui.zones();assert(zones.length>0,page);
       for(const z of zones){
         assert(z.y*v.scale>=capsuleBottom-origin+7.9,page+' '+z.id+' touches the capsule');
-        assert((z.y+z.h)*v.scale<=Math.min(height,bottom-origin)-9.9,page+' '+z.id+' touches the gesture bar');
+        assert((z.y+z.h)*v.scale<=Math.min(height-34,Math.min(height,bottom-origin)-20)+.01,page+' '+z.id+' touches the gesture bar');
         assert(z.x>=0&&(z.x+z.w)*v.scale<=width+.001);
         assert.equal(ui.hitAt(z.x+z.w/2,z.y+z.h/2),z.id);
       }
@@ -119,4 +119,26 @@ test('微信播放通道暂时失效时，补给不会打断游戏，终点仍�
   }});
   fallback.init();fallback.sound('power',{id:'goldrush'});fallback.sound('finish',{m:1});
   assert.equal(attempts,2);assert.equal(slots,1);
+});
+
+test('每日挑战屏蔽底层首页，关卡滚动后只响应可见卡片，设置移除重置入口',()=>{
+  const e=game(),texts=[],state={page:0,day:e.calendarDay(),settingsReturn:'home'};
+  const v=viewport({windowWidth:375,windowHeight:667}),g=drawing(texts);
+  const ui=createInterface(e,state,{icons:{height:384},models:{}});
+  e.UI.screen='daily';ui.paint(g,v);
+  assert.deepEqual(ui.zones().map(z=>z.id),['startDaily','cancelDaily']);
+  assert.equal(ui.hitAt(v.cx,v.bottom),'cancelDaily');
+  assert.equal(ui.hitAt(v.cx,v.top),'cancelDaily');
+  assert.equal(ui.hitAt(v.cx,ui.zones()[0].y-12),undefined);
+  assert(!e.dailyRecord(state.day).started);
+  e.SAVE.unlocked=e.NUM_LEVELS;e.UI.screen='levels';ui.paint(g,v);
+  assert(ui.zones().some(z=>z.id==='level:0'));
+  assert(!ui.zones().some(z=>z.id==='level:29'));
+  state.levelScroll=1e5;ui.paint(g,v);
+  assert.equal(state.levelScroll,ui.levelList.max);
+  assert(!ui.zones().some(z=>z.id==='level:0'));
+  const last=ui.zones().find(z=>z.id==='level:29');
+  assert.equal(ui.hitAt(last.x+last.w/2,last.y+last.h/2),'level:29');
+  assert(Math.abs(last.y+last.h-v.bottom)<.01);
+  e.UI.screen='settings';ui.paint(g,v);assert(!ui.zones().some(z=>z.id==='reset'));
 });
