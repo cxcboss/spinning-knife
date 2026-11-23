@@ -1338,6 +1338,7 @@ function paintAtlas() {
 }
 
 /* ---------------- GFX ---------------- */
+const RESIDENT_MIN_VERTICES = 360;
 const GFX = (() => {
   let gl = null, cv = null, prog = null, tex = null, bufferGeneration=0, atlas=null;
   const U = {};
@@ -1389,7 +1390,7 @@ const GFX = (() => {
       this.max = maxV; this.f = new Float32Array(maxV * PS); this.n = 0; this.dyn = !!dynamic; this.fixed = !!fixed;
       this.vbo = null; this.generation = -1; this.dirty = true;
     }
-    clear() { this.modelCount=0;this.n = 0; this.dirty = true; }
+    clear() { this.ranges=null;this.modelCount=0;this.n = 0; this.dirty = true; }
     dispose() { if(this.vbo&&this.generation===bufferGeneration)gl.deleteBuffer(this.vbo); }
     grow(extra) {
       if (this.fixed) return false;
@@ -1400,7 +1401,7 @@ const GFX = (() => {
     /* copy a baked mesh through a rotation matrix R (row-major 3x3), uniform scale s, translation and optional colour tint */
     addMesh(m, tx, ty, tz, R, s, tint) {
       const n = m.n;
-      if(this.models && !this.streamOnly && n>=360 && (s===undefined||s>0)){
+      if(this.models && !this.streamOnly && n>=RESIDENT_MIN_VERTICES && (s===undefined||s>0)){
         // Commands capture the pose now: most callers reuse a scratch rotation matrix.
         const i=this.modelCount++,cmd=this.models[i]||(this.models[i]={rotation:new Float32Array(9)});
         cmd.mesh=m;cmd.first=this.n;cmd.x=tx;cmd.y=ty;cmd.z=tz;cmd.scale=s??1;cmd.tint=tint;
@@ -1410,6 +1411,13 @@ const GFX = (() => {
       }
       if (this.n + n > this.max && !this.grow(n)) return;
       const src = m.f, dst = this.f; let o = this.n * PS;
+      if(!R && (s===undefined||s===1) && !tint){
+        dst.set(src.length===n*PS?src:src.subarray(0,n*PS),o);
+        if(tx||ty||tz)for(let k=o;k<o+n*PS;k+=PS){
+          dst[k]+=tx;dst[k+1]+=ty;dst[k+2]+=tz;
+        }
+        this.n+=n;return;
+      }
       R = R || R_IDENT_CONST; s = s === undefined ? 1 : s;
       const r0 = R[0], r1 = R[1], r2 = R[2], r3 = R[3], r4 = R[4], r5 = R[5], r6 = R[6], r7 = R[7], r8 = R[8];
       const tr = tint ? tint[0] : 1, tg = tint ? tint[1] : 1, tb = tint ? tint[2] : 1;
@@ -1548,6 +1556,45 @@ const GFX = (() => {
     gl.vertexAttribPointer(0, 3, gl.FLOAT, false, S, 0); gl.vertexAttribPointer(1, 3, gl.FLOAT, false, S, 12);
     gl.vertexAttribPointer(2, 4, gl.FLOAT, false, S, 24); gl.vertexAttribPointer(3, 2, gl.FLOAT, false, S, 40);
   }
+  // The street is baked in roughly left-to-right order. Keep one VBO and skip
+  // triangle ranges wholly beyond either horizontal clip plane.
+  function terrainRanges(b) {
+    const ranges=[], verticesPerRange=192;
+    for(let first=0;first<b.n;first+=verticesPerRange){
+      const end=Math.min(first+verticesPerRange,b.n);
+      let x0=Infinity,y0=Infinity,z0=Infinity,x1=-Infinity,y1=-Infinity,z1=-Infinity;
+      for(let k=first*PS;k<end*PS;k+=PS){
+        const x=b.f[k],y=b.f[k+1],z=b.f[k+2];
+        x0=Math.min(x0,x);y0=Math.min(y0,y);z0=Math.min(z0,z);
+        x1=Math.max(x1,x);y1=Math.max(y1,y);z1=Math.max(z1,z);
+      }
+      ranges.push({first,end,x0,x1,y0,y1,z0,z1});
+    }
+    return ranges;
+  }
+  function outsideSide(x0,x1,y0,y1,z0,z1,sign){
+    const x=VP[3]+sign*VP[0],y=VP[7]+sign*VP[4],z=VP[11]+sign*VP[8];
+    return x*(x>=0?x1:x0)+y*(y>=0?y1:y0)+z*(z>=0?z1:z0)+VP[15]+sign*VP[12]<-.01;
+  }
+  function visibleWidth(x0,x1,y0,y1,z0,z1){
+    return !outsideSide(x0,x1,y0,y1,z0,z1,1)&&!outsideSide(x0,x1,y0,y1,z0,z1,-1);
+  }
+  function drawTerrain(b){
+    if(b.n<768){drawBatch(b);return;}
+    if(!b.ranges||b.ranges[b.ranges.length-1].end!==b.n)b.ranges=terrainRanges(b);
+    let first=-1,end=0;
+    for(const r of b.ranges){
+      if(!visibleWidth(r.x0,r.x1,r.y0,r.y1,r.z0,r.z1))continue;
+      if(first<0){
+        uploadBatch(b);vertexLayout(b.vbo);first=r.first;
+      }else if(r.first-end>=384){
+        // Drawing across a small gap costs less than another WebGL command.
+        gl.drawArrays(gl.TRIANGLES,first,end-first);first=r.first;
+      }
+      end=r.end;
+    }
+    if(first>=0)gl.drawArrays(gl.TRIANGLES,first,end-first);
+  }
   function drawBatch(b) {
     if(!b || (!b.n&&!b.modelCount))return;
     if(b.n){uploadBatch(b);vertexLayout(b.vbo);}
@@ -1570,17 +1617,20 @@ const GFX = (() => {
   }
   const skyB = { f: null };
   function drawSky() {
-    if (!skyB.b) skyB.b = new Batch(24, true, true);
-    const b = skyB.b; b.clear();
+    if (!skyB.b) skyB.b = new Batch(24, false, true);
+    const b = skyB.b;
     const T = env.skyTop, M = env.skyMid, B = env.skyBot, z = 0.5;
     const row = (y0, y1, c0, c1) => {
       b.vtx(-1, y0, z, c0, WHITE_U, WHITE_V); b.vtx(1, y0, z, c0, WHITE_U, WHITE_V); b.vtx(1, y1, z, c1, WHITE_U, WHITE_V);
       b.vtx(-1, y0, z, c0, WHITE_U, WHITE_V); b.vtx(1, y1, z, c1, WHITE_U, WHITE_V); b.vtx(-1, y1, z, c1, WHITE_U, WHITE_V);
     };
-    row(-1, 0.1, B, M); row(0.1, 1, M, T);
+    if(skyB.top!==T||skyB.mid!==M||skyB.bottom!==B){
+      skyB.top=T;skyB.mid=M;skyB.bottom=B;
+      b.clear();row(-1, 0.1, B, M);row(0.1, 1, M, T);
+    }
     gl.uniformMatrix4fv(U.uVP, false, IDM);
     drawBatch(b);
-    if (!skyB.orb) skyB.orb = new Batch(6,true,true);
+    if (!skyB.orb) skyB.orb = new Batch(6,false,true);
     const aspect = W / H, sun = skyB.orb;
     if (skyB.aspect !== aspect || skyB.tint !== T) {
       skyB.aspect = aspect; skyB.tint = T; sun.clear();
@@ -1607,7 +1657,7 @@ const GFX = (() => {
     gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
     drawBatch(scene.clouds);
     gl.disable(gl.BLEND); gl.depthMask(true);
-    if (scene.stat) for (const b of scene.stat) drawBatch(b);
+    if (scene.stat) for (const b of scene.stat) drawTerrain(b);
     drawBatch(scene.opaque);
     gl.enable(gl.BLEND); gl.depthMask(false);
     if (scene.transS) for (const b of scene.transS) drawBatch(b);
@@ -1617,7 +1667,7 @@ const GFX = (() => {
     gl.depthMask(true); gl.disable(gl.BLEND);
   }
   return {
-    init, resize, setEnv, setCamera, project, render,
+    init, resize, setEnv, setCamera, project, render, visibleWidth,
     pruneModels, batch: (maxV, dynamic, fixed, retainModels) => new Batch(maxV, dynamic, fixed, retainModels),
     get cam() { return cam; }, get env() { return env; }, get size() { return [W, H, DPR]; },
     get gl() { return gl; },
@@ -3328,7 +3378,7 @@ function scCamera(tx, ty, width) {
 }
 
 /* ---- per-frame helpers ---- */
-function scBegin(env,streamOnly=false) { SC.dynO.streamOnly=streamOnly; SC.dynO.clear(); SC.dynT.clear(); SC.dynA.clear(); SC.cloudB.clear(); if (env || SC.env) GFX.setEnv(env || SC.env); }
+function scBegin(env) { SC.dynO.streamOnly=false; SC.dynO.clear(); SC.dynT.clear(); SC.dynA.clear(); SC.cloudB.clear(); if (env || SC.env) GFX.setEnv(env || SC.env); }
 function scClouds(camX, camY) {
   const L = SC.L, T = SC.T, b = SC.cloudB;
   for (const c of L.clouds) {
@@ -3348,9 +3398,23 @@ function scPlatDyn(p, K, tNow) {
     else { dx += Math.sin(tNow * 70) * 0.04 * (e / PHYS.CRUMB + 0.3); dy += Math.cos(tNow * 83) * 0.025; }
   }
   if (R) { const cx = (p.x0 + p.x1) / 2; SC.dynO.addMesh(m, dx + cx - (R[0] * cx), dy - R[3] * cx, 0, R, 1, null); }
-  else SC.dynO.addMesh(m, dx, dy, 0, null, 1, null);
+  else if(GFX.visibleWidth(p.x0+dx,p.x1+dx,-45+dy,p.top+dy+.02,-2.1,2.1))
+    SC.dynO.addMesh(m, dx, dy, 0, null, 1, null);
 }
 
+// The pieces still drive cuts and settling. A stationary, untouched stack can share one draw.
+function intactStackMesh(o){
+  if(o.def.fly||o.float||o.pcs.length<2||o.pcs.some(q=>q.state!==0))return null;
+  const count=o.pcs.reduce((n,q)=>n+q.pc.mesh.n,0);
+  if(count<RESIDENT_MIN_VERTICES)return null;
+  const mesh=GFX.batch(count,false,true);
+  for(const {pc} of o.pcs){
+    // Large pieces previously translated via float uniforms, small pieces on the CPU.
+    if(pc.mesh.n>=RESIDENT_MIN_VERTICES)mesh.addMesh(pc.mesh,Math.fround(pc.x),Math.fround(pc.y),Math.fround(pc.z),null,1,null);
+    else mesh.addMesh(pc.mesh,pc.x,pc.y,pc.z,null,1,null);
+  }
+  return mesh;
+}
 /* standing sliceable objects (only those near the camera are drawn) */
 function scObjects(camX, tNow) {
   const b = SC.dynO;
@@ -3359,7 +3423,9 @@ function scObjects(camX, tNow) {
     if (o.x1 < camX - 9 || o.x0 > camX + 16) continue;
     let by = 0;
     if (o.float) by = Math.sin(tNow * o.float.sp + o.float.ph) * o.float.amp;
-    for (const q of o.pcs) { if (q.state !== 0) continue; const pc = q.pc; b.addMesh(pc.mesh, pc.x, pc.y + by, pc.z, null, 1, null); }
+    if(o.intactMesh===undefined)o.intactMesh=intactStackMesh(o);
+    if(o.intactMesh)b.addMesh(o.intactMesh,0,0,0,null,1,null);
+    else for(const {state,pc} of o.pcs)if(state===0)b.addMesh(pc.mesh,pc.x,pc.y+by,pc.z,null,1,null);
     if(o.def.dailyTarget)SC.dynT.sprite((o.x0+o.x1)/2,o.y1+by+.18,.29,.24,.24,0,[1,.79,.36,.88],atlUV('star',2));
     if (o.decor) b.addMesh(o.decor, 0, 0, 0, null, 1, null);
   }
@@ -3994,7 +4060,7 @@ function applyCut(e) {
   q.pend = false;if(q.state)return;
   const [A, B] = slicePiece(pc, e.nx, e.ny, 0, e.d);
   if(!A||!B)return;
-  q.state=1;o.disturbed=true;
+  q.state=1;o.disturbed=true;o.intactMesh=null;
   for(const [piece,side] of [[A,1],[B,-1]]){
     piece.y+=e.by||0;
     setCutMotion(piece,o.t,side,e.nx,e.ny,e.kvx,e.kvy);
@@ -5119,7 +5185,7 @@ function gUpdateFrenzy(dt){
 }
 function gDrawFrenzy(){
   const f=G.frenzy,K=G.K,cam=G.cam,hot=f.feverLeft>0,size=hot?1.35:1;
-  scBegin(null,true);scCamera(cam.x+cam.sx,3.6+cam.sy,9.8);scClouds(cam.x+K.t*.085,3.6);
+  scBegin();scCamera(cam.x+cam.sx,3.6+cam.sy,9.8);scClouds(cam.x+K.t*.085,3.6);
   const opaque=SC.dynO,trans=SC.dynT,add=SC.dynA;
   for(const x of [-4.8,4.8]){
     add.sprite(x,1.28,-1.32,.72,.29,0,[1,.68,.32,.52],FRENZY_SOFT);
@@ -5141,7 +5207,9 @@ function gDrawFrenzy(){
       add.sprite(p.x+.10,p.y+.57,.18,glow,glow,0,[1,.27,.13,1],FRENZY_SPARK);
     }
   }
+  opaque.streamOnly=true; // Keep transient sliced fragments in one streaming buffer.
   fxDraw(cam.x);drawSpecials(cam.x);
+  opaque.streamOnly=false;
   trans.flat(K.x,.025,0,.70,.38,[.16,.21,.32,Math.max(.08,.25-K.y*.02)],FRENZY_SOFT);
   if(!f.reduced&&f.trailReady&&(hot||K.t-K.lastTap<.55)){
     trans.ribbon(f.trail,.018,hot?.20:.10,hot?FRENZY_ICE:FRENZY_GOLD,0,.68);

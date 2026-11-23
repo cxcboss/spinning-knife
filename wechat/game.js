@@ -229,14 +229,21 @@ function tapPoint(t){return {x:(t.clientX??t.pageX)/vp.scale,y:(t.clientY??t.pag
 function tapStart(ev){
   if(!ready||hidden||graphicsLost||pointer)return;
   const touch=ev.changedTouches?.[0]||ev.touches?.[0];if(!touch)return;
-  const {x,y}=tapPoint(touch);if(UI.screen!=='daily'&&(y<vp.top||y>vp.bottom))return;
+  const {x,y}=tapPoint(touch);
+  const bottom=UI.screen==='play'?vp.safeBottom/vp.scale:vp.bottom;
+  if(UI.screen!=='daily'&&(y<vp.top||y>bottom))return;
   sound.init();soundtrack();
-  const id=ui.hitAt(x,y);pointer={touch:touch.identifier,id,x,y,view:UI.view};
+  const id=ui.hitAt(x,y);
+  // A jump completes on touch-down. Only controls and drag gestures own a pointer until release.
+  if(UI.screen==='play'&&!id){
+    if(G.frenzy)Game.tapFrenzy(x/vp.w,y/vp.h);else Game.tap();
+    return;
+  }
+  pointer={touch:touch.identifier,id,x,y,view:UI.view};
   const list=ui.levelList;
   if(UI.screen==='levels'&&list&&y>=list.top&&y<=list.bottom)pointer.scrollStart=state.levelScroll;
   if(id){state.pressed=id;invalidate();return;}
-  if(UI.screen==='play'){if(G.frenzy)Game.tapFrenzy(x/vp.w,y/vp.h);else Game.tap();}
-  else if(UI.screen==='shop')UI.modelPressed=true;
+  if(UI.screen==='shop')UI.modelPressed=true;
 }
 function scrollLevels(value){
   const list=ui.levelList;
@@ -253,7 +260,7 @@ function moveLevelDrag(touch){
 }
 function tapEnd(ev,aborted){
   if(!pointer)return;
-  const touch=Array.from(ev.changedTouches||[]).find(t=>t.identifier===pointer.touch);if(!touch&&!aborted)return;
+  const touch=Array.from(ev.changedTouches||[]).find(t=>t.identifier===pointer.touch);if(!touch&&(!aborted||ev.changedTouches?.length))return;
   if(!aborted&&touch)moveLevelDrag(touch);
   const p=pointer;pointer=null;state.pressed='';UI.modelPressed=false;
   if(aborted||p.dragged||p.view!==UI.view){invalidate();return;}

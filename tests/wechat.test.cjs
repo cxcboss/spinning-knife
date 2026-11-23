@@ -21,6 +21,21 @@ function drawing(texts){
   return new Proxy({measureText:s=>({width:String(s).length*11}),fillText:s=>texts.push(String(s))},
     {get:(obj,key)=>obj[key]||(()=>{})});
 }
+test('横向视野裁剪保留跨过屏幕边缘的物体，并跟随相机移动',()=>{
+  const {GFX}=game();
+  const distance=10;
+  const halfWidth=distance*GFX.cam.aspect;
+  for(const center of [0,280]){
+    GFX.setCamera([center,0,distance],[center,0,0],Math.PI/2);
+    const left=center-halfWidth,right=center+halfWidth;
+    const visible=(x0,x1)=>GFX.visibleWidth(x0,x1,-1,1,0,0);
+    assert.equal(visible(left-2,left-1),false);
+    assert.equal(visible(left-1,left+.01),true);
+    assert.equal(visible(left-1,right+1),true);
+    assert.equal(visible(right-.01,right+1),true);
+    assert.equal(visible(right+1,right+2),false);
+  }
+});
 test('微信胶囊、刘海、灵动岛和底部手势区不遮挡操作，触摸坐标命中同一按钮',()=>{
   const e=game(),texts=[],state={day:e.calendarDay(),supplyIndex:0,page:0,settingsReturn:'home'};
   const ui=createInterface(e,state,{icons:{height:384},models:{}}),g=drawing(texts);
