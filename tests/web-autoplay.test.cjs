@@ -76,3 +76,48 @@ test('随机成败按每局的抽签选择实际输入，失误后重试当前�
   for(let i=0;i<13;i++)game.advanceWebCourse(.1);
   assert.deepEqual(game.starts,[[7,'retry']]);
 });
+
+test('同一关既能快速起跳，也能在安全平台停顿超过两秒',()=>{
+  const game=new Function(source+`
+    return {genLevel,newKnife,courseInputs,stepKnife,PHYS};
+  `)();
+  function takeoffs(draw){
+    const world=game.genLevel(0).W;
+    const knife=game.newKnife(world,0,world.pl[0].land);
+    const search=game.courseInputs(knife,world,()=>draw);
+    let part;
+    do{part=search.next();}while(!part.done);
+    const taps=new Set(part.value),waits=[];
+    let landed=0;
+    for(let tick=0;tick<18000&&knife.mode!=='done';tick++){
+      const before=knife.mode;
+      game.stepKnife(knife,game.PHYS.DT,world,taps.has(tick));
+      if(before==='stuck'&&knife.mode==='air')waits.push((tick-landed)*game.PHYS.DT);
+      if(before==='air'&&knife.mode==='stuck')landed=tick+1;
+    }
+    assert.equal(knife.mode,'done');
+    return waits;
+  }
+  const fast=takeoffs(0),slow=takeoffs(.99);
+  assert.ok(fast[0]<.1&&fast.slice(1).some(t=>t<.1));
+  assert.ok(slow[0]>2&&slow.slice(1).some(t=>t>2));
+});
+
+test('网页识别不同刷新周期，物理步之间的刀位只用于绘制',()=>{
+  const game=new Function(source+`
+    return {observeRefresh,webKnifePose,recordWebKnife,MAIN,UI,PHYS};
+  `)();
+  game.UI.screen='settings';
+  for(const hz of [60,120,144,165,240,60]){
+    for(let frame=0;frame<60;frame++)game.observeRefresh(1/hz);
+    assert.ok(Math.abs(1000/game.MAIN.refreshMs-hz)<.01);
+  }
+  const step=game.PHYS.DT;
+  const knife={mode:'air',x:1,y:0,a:0,t:0};
+  game.recordWebKnife(knife);
+  Object.assign(knife,{x:2,y:4,a:1,t:step});
+  assert.deepEqual(game.webKnifePose(knife,step*.5),{x:1.5,y:2,a:.5});
+  assert.equal(knife.x,2);
+  knife.mode='stuck';
+  assert.equal(game.webKnifePose(knife,step*.5),knife);
+});

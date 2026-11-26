@@ -4386,6 +4386,7 @@ function gUpdate(dtReal) {
     G.acc += dt; let n = 0;
     while (G.acc >= PHYS.DT && n < 16) {
       // @web-only-begin
+      recordWebKnife(K);
       if (webAuto.inputs && G.mode==='play') G.tapQ=webAuto.inputs.has(Math.round(K.t/PHYS.DT));
       // @web-only-end
       const tap = G.tapQ; G.tapQ = false;
@@ -4760,6 +4761,9 @@ function drawAzureDragon(x,y,angle,tilt,spread,time,size=1){
   alt.ribbon(dragonCurve,.18,.052,DRAGON_JADE,.46*morph,.10*morph);
 }
 function drawKnifeForm(knife,x,y,angle,tilt,spread,time,tint,size=1){
+  // @web-only-begin
+  if(G.frenzy&&UI.screen==='play')({x,y,a:angle}=webKnifePose(G.K,G.frenzy.acc));
+  // @web-only-end
   const opaque=SC.dynO;
   if(!knife.form||spread<=.01){opaque.addMesh(knifeMesh(knife.id),x,y,0,matZX(angle,tilt,R3),size,tint);return;}
   if(knife.form==='dragon'){
@@ -4879,6 +4883,9 @@ function gDraw() {
   if (K.mode !== 'dead') {
     const kn = G.equipment;
     let a=K.a,x=K.x,y=K.y;
+    // @web-only-begin
+    if(K.mode==='air')({a,x,y}=webKnifePose(K,G.acc));
+    // @web-only-end
     const airborne=K.mode==='air',tilt=knifeTilt(K.t,airborne);
     if (K.mode === 'stuck') {
       const w = G.wob, e = w.err * Math.exp(-7 * w.t) * Math.cos(26 * w.t) + 0.05 * Math.sin(K.t * 3) * Math.exp(-2 * w.t);
@@ -5163,6 +5170,9 @@ function gUpdateFrenzy(dt){
     if(f.waveTimer<=0)spawnFrenzyWave(f);
     advanceFrenzyTargets(f,worldDt);
     const size=f.feverLeft>0?1.35:1,from=frenzyPose(K,size);
+    // @web-only-begin
+    recordWebKnife(K);
+    // @web-only-end
     stepFrenzyKnife(K,step);sweepFrenzyTargets(f,K,from,frenzyPose(K,size));
     if(f.timeLeft>0)frenzyRain(f,step);
     f.rainLeft=Math.max(0,f.rainLeft-step);
@@ -6766,18 +6776,25 @@ function clearWebAuto(){
 
 // Search with the same fixed physics steps that will consume the inputs. Backtrack if a
 // good landing would leave the following platform unreachable. Yield to painting while planning.
-function* courseInputs(knife,world){
+function* courseInputs(knife,world,pace=Math.random){
   if(knife.mode==='done')return [];
   const pad=padAt(world,knife.sp);
   const moving=pad.mv||world.pl.slice(knife.sp+1,knife.sp+3).some(p=>p.mv);
   // Let the blade finish a cut after landing; moving and crumbling pads also allow immediate launch.
   const restTicks=knife.sp>0&&!moving&&!pad.crum?18:0;
-  for(let delay=restTicks;delay<=(moving?420:restTicks);delay+=15){
+  // A quick takeoff is common, with occasional pauses up to about 2.6 seconds.
+  const delays=new Set();
+  if(pace)delays.add(Math.round(3+310*pace()**2.4));
+  for(let delay=restTicks;delay<=(moving?420:restTicks);delay+=15)delays.add(delay);
+  for(const delay of delays){
+    const ready=cloneKnife(knife);
+    for(let tick=0;tick<delay&&ready.mode==='stuck';tick++)stepKnife(ready,PHYS.DT,world,false);
+    if(ready.mode!=='stuck')continue;
     const candidates=[];
     for(let boost=-1;boost<=100;boost+=2){
       if((boost+1)%16===0)yield;
       const tau=boost<0?null:boost*PHYS.DT-1e-10;
-      const hop=simHop(knife,world,delay*PHYS.DT,tau,3);
+      const hop=simHop(ready,world,0,tau,3);
       if(!hop.ok)continue;
       const end=hop.K,finished=end.mode==='done';
       if(!finished&&end.sp<=knife.sp)continue;
@@ -6793,7 +6810,7 @@ function* courseInputs(knife,world){
       const landing=[end.sp,Math.round(end.sx*8),Math.round(end.lean*5),Math.round(end.t*8)].join('/');
       if(seen.has(landing))continue;
       seen.add(landing);
-      const rest=yield* courseInputs(end,world);
+      const rest=yield* courseInputs(end,world,pace);
       if(rest){
         const launch=Math.round(knife.t/PHYS.DT)+delay;
         return boost<0?[launch,...rest]:[launch,launch+1+boost,...rest];
@@ -6804,7 +6821,15 @@ function* courseInputs(knife,world){
 }
 // Replay the winning taps to find takeoffs where a missed or mistimed boost really fails.
 function* webRoundInputs(knife,world,randomOutcome,random=Math.random){
-  const route=yield* courseInputs(knife,world);
+  const search=courseInputs(knife,world);
+  let route;
+  // Bound randomized backtracking on awkward moving platforms; keep the proven fallback.
+  for(let slice=0;slice<2400;slice++){
+    const part=search.next();
+    if(part.done){route=part.value;break;}
+    yield;
+  }
+  if(!route)route=yield* courseInputs(knife,world,null);
   if(!route||!randomOutcome||random()<.78)return route;
   const taps=new Set(route), launches=[];
   const replay=cloneKnife(knife);
@@ -6849,7 +6874,7 @@ function planWebCourse(){
 }
 function webCourseReady(){
   if(!webAuto.search)return true;
-  const deadline=performance.now()+6;
+  const deadline=performance.now()+Math.min(6,MAIN.refreshMs*.35);
   do{
     const part=webAuto.search.next();
     if(part.done){
@@ -7358,6 +7383,7 @@ function shopDraw(dt) {
 const PARAMS = (() => { try { return new URLSearchParams(location.search); } catch (e) { return new URLSearchParams(''); } })();
 const MAIN = {
   cv: null, fx: null, fctx: null, fd: 1, last: 0, qScale: 1, lowN: 0, fastN: 0, accT: 0, accN: 0, errs: 0, errT: 0, clearedFx: false, lastL: null, dead: false,
+  refreshMs:1000/120, cadence:[], measuredRefresh:false,
   noadapt: PARAMS.has('noadapt'), swipe: null,
 };
 
@@ -7569,13 +7595,43 @@ function onFrameError(e) {
   if (MAIN.errs === 4 && UI.screen === 'play') { try { act('home'); } catch (_) { /* ignore */ } }
   if (MAIN.errs > 60) showFatal(LANG === 'zh' ? '出错了，请刷新页面重试。' : 'Something went wrong. Please reload the page.');
 }
+const webPrevPose={knife:null,t:0,mode:null,x:0,y:0,a:0};
+const webRenderPose={x:0,y:0,a:0};
+function recordWebKnife(k){
+  const p=webPrevPose;
+  p.knife=k;p.t=k.t;p.mode=k.mode;p.x=k.x;p.y=k.y;p.a=k.a;
+}
+function webKnifePose(k,remainder){
+  const p=webPrevPose;
+  if(p.knife!==k||p.mode!==k.mode||Math.abs(k.t-p.t-PHYS.DT)>1e-7)return k;
+  const alpha=clamp(remainder/PHYS.DT,0,1);
+  webRenderPose.x=lerp(p.x,k.x,alpha);
+  webRenderPose.y=lerp(p.y,k.y,alpha);
+  webRenderPose.a=lerp(p.a,k.a,alpha);
+  return webRenderPose;
+}
+// Use the fastest sustained frame intervals to estimate the display cadence.
+function observeRefresh(dt){
+  const ms=dt*1000;
+  if(ms<1||ms>50)return;
+  MAIN.cadence.push(ms);
+  if(MAIN.cadence.length<60)return;
+  MAIN.cadence.sort((a,b)=>a-b);
+  const interval=MAIN.cadence[8];
+  MAIN.cadence.length=0;
+  // Menus can recalibrate after moving between displays. A busy level may only
+  // raise the target, so dropped frames do not become the new quality target.
+  if(!MAIN.measuredRefresh||UI.screen!=='play'||interval<MAIN.refreshMs*.95){
+    MAIN.refreshMs=interval;MAIN.measuredRefresh=true;
+  }
+}
 function adaptQuality(dt) {
   if(MAIN.noadapt||SAVE.opts.q!==0||UI.screen!=='play'||document.hidden||dt<=0||dt>.12)return;
   MAIN.accT+=dt;MAIN.accN++;
   if(MAIN.accT<1.3)return;
   const ms=1000*MAIN.accT/MAIN.accN;
   MAIN.accT=MAIN.accN=0;UI.fps=1000/ms;
-  MAIN.lowN=ms>19?MAIN.lowN+1:0;MAIN.fastN=ms<17.3?MAIN.fastN+1:0;
+  MAIN.lowN=ms>MAIN.refreshMs*1.14?MAIN.lowN+1:0;MAIN.fastN=ms<MAIN.refreshMs*1.045?MAIN.fastN+1:0;
   let scale=MAIN.qScale;
   if(MAIN.lowN>=2){scale=Math.max(.6,scale-.12);MAIN.lowN=0;}
   if(MAIN.fastN>=10){scale=Math.min(1,scale+.06);MAIN.fastN=0;}
@@ -7585,7 +7641,8 @@ function frame(now) {
   requestAnimationFrame(frame);
   if (MAIN.dead || MAIN.graphicsLost || document.hidden) return;
   let dt = (now - MAIN.last) / 1000; MAIN.last = now;
-  if (!(dt > 0) || (dt > 0.25&&G.mode!=='frenzy')) dt = 1 / 60;
+  observeRefresh(dt);
+  if (!(dt > 0) || (dt > 0.25&&G.mode!=='frenzy')) dt = MAIN.refreshMs/1000;
   try {
     if (UI.screen === 'shop') {
       MAIN.frozenView=-1;
