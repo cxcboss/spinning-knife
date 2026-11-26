@@ -205,7 +205,7 @@ button:focus-visible {outline:2px solid #fff0a8;outline-offset:3px}
 .segs button {padding:4px clamp(5px,calc(var(--u)*1.9),10px);min-height:44px;border-radius:7px;color:#c2d2ee;font-size:clamp(11px,calc(var(--u)*3.25),15px)}
 .segs button.on {background:var(--blue);box-shadow:inset 0 1px 0 #b3c7ef72;color:#fff5dc}
 .setting-foot {display:flex;justify-content:space-between;align-items:center;gap:5px;margin-top:8px;color:var(--mist);font-size:12px}
-#scr-daily-challenge {z-index:2}
+#scr-daily-challenge,#scr-auto-mode {z-index:2}
 
 /* Result, revive and pause share the outer shell. The header conveys the state. */
 .dim {position:absolute;inset:0;background:#080e22a8}
@@ -446,7 +446,7 @@ button.achievement-reward {text-align:left;justify-self:start;border-radius:4px}
 @keyframes wheel-dots {from{opacity:.25}to{opacity:1}}
 .wheel-actions {display:grid;gap:8px;width:min(100%,354px)}
 .wheel-actions [aria-busy=true] {filter:saturate(.55) brightness(.85)}
-:is(#scr-notice,#scr-trial-pin,#scr-trial-settings) {align-items:center;justify-content:center;padding:var(--safe-top) var(--gutter) var(--safe-bottom)}
+:is(#scr-auto-mode,#scr-notice,#scr-trial-pin,#scr-trial-settings) {align-items:center;justify-content:center;padding:var(--safe-top) var(--gutter) var(--safe-bottom)}
 #scr-notice {z-index:8}
 .dialog-head.warning {background:var(--grain),radial-gradient(ellipse at 50% 0%,#916244,#4c4160 84%)}
 .dialog-head.warning .dialog-medal {color:#ffe2a4;border-color:#e9af7f}
@@ -5101,6 +5101,9 @@ function cutFrenzyTarget(f,t,source,angle){
   if(kind==='freeze')f.freezeLeft=3.5;
   if(kind==='rain'){f.rainLeft=4.5;f.rainTimer=.5;}
   if(frenzyValuable(kind)){fxConfetti(p.x,p.y,7,3.3);G.cam.shake=Math.max(G.cam.shake,.075);}
+  // @web-only-begin
+  if(frenzyValuable(kind)||frenzyPower(kind))webPrizeBurst(f,kind,p,coins*hot*(crit?2:1));
+  // @web-only-end
   if(kind==='emoji'||frenzyPower(kind))fxSparks(p.x,p.y,6,kind==='freeze'?FRENZY_ICE:FRENZY_GOLD,3.4,false);
   if(f.elapsed-FX.lastSliceSfx>.045){
     materialSound(material,G.equipment);sfx('slice');FX.lastSliceSfx=f.elapsed;
@@ -5168,6 +5171,10 @@ function gUpdateFrenzy(dt){
     if(f.timeLeft<=1e-8)break;
     f.waveTimer-=worldDt;f.powerTimer-=worldDt;
     if(f.waveTimer<=0)spawnFrenzyWave(f);
+    // @web-only-begin
+    if(f.bonusTime!==undefined)webFrenzyBonus(f,worldDt);
+    if(webAuto.enabled&&webAuto.mode==='frenzy')webFrenzyPilot(f,K);
+    // @web-only-end
     advanceFrenzyTargets(f,worldDt);
     const size=f.feverLeft>0?1.35:1,from=frenzyPose(K,size);
     // @web-only-begin
@@ -5849,7 +5856,7 @@ const starSvg=state=>glyph('star',state?'st '+state:'st');
 const $ = (s, r) => (r || document).querySelector(s);
 const UI = { screen: 'home', cur: 0, demoIdx: 0, shopIdx: 0, shopT: 0, stage: null, w: 360, h: 640, q: 1, fps: 60, slow: 0, taps: 0, view: 0, shopReturn: 'home', settingsReturn: 'home', shopFromGrid:false, shopScroll:0, calendar: -1, endlessDay:-1, endlessStarting:false, endlessSharing:false, sampleIndex:-1, supplyIndex:0, modelPressed:false, pressBlend:0, sample:null, sampleFX:[] };
 let _hudCoins = -1, _hudProg = -1, _hintK = null;
-const SCREENS=['home','levels','shop','settings','pause','result','fail','supplies','powers','endless','endless-result','achievements','daily-challenge','daily-result','wheel','frenzy-result','duel'];
+const SCREENS=['auto-mode','home','levels','shop','settings','pause','result','fail','supplies','powers','endless','endless-result','achievements','daily-challenge','daily-result','wheel','frenzy-result','duel'];
 if(PLAYTEST_BUILD)SCREENS.push('trial-pin','trial-settings');
 const EVENT_PAGES=['achievements','daily-challenge','wheel'];
 
@@ -5991,11 +5998,15 @@ function frenzyFullLeft(day=calendarDay()){
   return Math.max(0,3-(SAVE.frenzy.day===day?SAVE.frenzy.runsToday:0));
 }
 function startFrenzy(duel){
-  const allowed=UI.screen==='duel'&&duel||UI.screen==='home'||UI.screen==='frenzy-result'||(['pause','play'].includes(UI.screen)&&G.frenzy)||
+  const allowed=UI.screen==='auto-mode'&&webAuto.mode==='frenzy'||UI.screen==='duel'&&duel||UI.screen==='home'||UI.screen==='frenzy-result'||(['pause','play'].includes(UI.screen)&&G.frenzy)||
     (UI.screen==='shop'&&UI.shopReturn==='frenzy-result');
   if(!allowed)return false;
   audInit();saveLoad(false);
-  if(duel){if(!startDuel(duel))return false;}else Game.startFrenzy();
+  if(duel){if(!startDuel(duel))return false;}else{
+    const round=Game.startFrenzy();
+    round.bonusTime=.35;round.nextBonusPower=5;round.bonusPower='freeze';
+  }
+  webAuto.resultTime=0;
   recordPlayDay();
   UI.frenzyResult=null;applyTheme();showScreen('play');renderHud();musicStart(G.L.world);uiFrame();
   MAIN.last=globalThis.performance?.now()??MAIN.last;return true;
@@ -6769,10 +6780,65 @@ function showFail(){
   showScreen('fail');
 }
 // Browser host only. WeChat has its own settings, input loop and course navigation.
-const webAuto={enabled:false,inputs:null,search:null,resultTime:0};
+const webAuto={mode:null,enabled:false,inputs:null,search:null,resultTime:0};
+function webFrenzyBonus(f,dt){
+  f.bonusTime-=dt;
+  if(f.bonusTime>0)return;
+  f.bonusTime=1.05+f.rn()*.65;
+  if(f.targets.length>=18)return;
+  const side=f.rn()<.5?-1:1,x=side*(2.6+f.rn()*1.7),y=.65;
+  if(f.targets.some(t=>!t.dead&&t.kind==='bomb'&&Math.hypot(t.q.pc.x-x,t.q.pc.y-y)<1.8))return;
+  let kind=frenzyPick(f.rn,FRENZY_RICH);
+  if(!f.feverLeft&&f.elapsed>=f.nextBonusPower){
+    kind=f.bonusPower;f.bonusPower=kind==='freeze'?'rain':'freeze';
+    f.nextBonusPower=f.elapsed+6+f.rn()*2;
+  }
+  f.targets.push(makeFrenzyTarget(kind,x,y,-side*(2+f.rn()*1.6),9+f.rn()*2,f.rn));
+}
+function webPrizeBurst(f,kind,p,coins){
+  const power=frenzyPower(kind);
+  const label=kind==='freeze'?tr('frenzyFreeze'):kind==='rain'?tr('frenzyRain'):byLanguage(MATERIALS[kind])+' +'+coins;
+  const color=kind==='freeze'?'#a4f8ff':kind==='rain'?'#d7c3ff':'#ffe884';
+  if(!f.reduced)fxConfetti(p.x,p.y,power?18:9,power?4.7:3.9);
+  if(power||f.elapsed>=(f.nextPrizeLabel||0)){
+    fxPopup(clamp(p.x,-3.6,3.6),Math.min(6.5,p.y+.9),label,color,24,1,.85);
+    f.nextPrizeLabel=f.elapsed+.28;
+  }
+}
+// Compare a short flight after a real tap with leaving the knife on its current arc.
+function webFrenzyPilot(f,k){
+  if(f.elapsed<(f.nextDecision||0))return;
+  f.nextDecision=f.elapsed+.16+Math.random()*.13;
+  let bestScore=0,bestAim=null;
+  for(const aim of [null,-4.8,-2.4,0,2.4,4.8]){
+    const vx=aim===null?k.vx:clamp((aim-k.x)*3.1,-7.2,7.2);
+    const vy=aim===null?k.vy:10.6+k.feather*.6;
+    let score=0;
+    for(const t of f.targets){
+      if(t.dead)continue;
+      const gravity=frenzyFlyer(t.kind)?0:frenzyPower(t.kind)?6.2:t.kind==='bomb'||t.kind==='emoji'?9.6:12.4;
+      let proximity=0;
+      for(const dt of [.14,.32,.52]){
+        const worldDt=f.freezeLeft>dt?dt*.35:dt;
+        const dx=clamp(k.x+vx*(1-Math.exp(-.55*dt))/.55,-4.5,4.5)-t.q.pc.x-t.vx*worldDt;
+        const dy=clamp(k.y+vy*dt-9.25*dt*dt,.65,7.65)-t.q.pc.y-t.vy*worldDt+gravity*worldDt*worldDt/2;
+        proximity=Math.max(proximity,1/(1+dx*dx+dy*dy));
+      }
+      score+=proximity*(t.kind==='bomb'?-5:frenzyPower(t.kind)?3:frenzyValuable(t.kind)?2:1);
+    }
+    if(aim===null||score>bestScore+.04){bestScore=score;bestAim=aim;}
+  }
+  if(bestAim!==null)Game.tapFrenzy((bestAim+4.8)/9.6,.5);
+}
+function renderAutoMode(){
+  dialog('auto-mode','pause',LANG==='zh'?'选择自动玩模式':'Choose autoplay mode','',dialogMedal('play'),
+    actionButton('autoCourse',LANG==='zh'?'正式模式':'Classic','knife')+
+    actionButton('autoFrenzy',LANG==='zh'?'空中狂潮':'Aerial Frenzy','shower','soft')+
+    actionButton('cancelAuto',tr('cancel'),'back','quiet'));
+}
 function clearWebAuto(){
   stopBackgroundPlay();
-  webAuto.enabled=false;webAuto.inputs=null;webAuto.search=null;webAuto.resultTime=0;
+  webAuto.mode=null;webAuto.enabled=false;webAuto.inputs=null;webAuto.search=null;webAuto.resultTime=0;
 }
 
 // Search with the same fixed physics steps that will consume the inputs. Backtrack if a
@@ -6889,6 +6955,13 @@ function webCourseReady(){
   return false;
 }
 function advanceWebCourse(dt){
+  if(webAuto.enabled&&webAuto.mode==='frenzy'){
+    if(UI.screen==='frenzy-result'&&G.frenzy?.result){
+      webAuto.resultTime+=dt;
+      if(webAuto.resultTime>=1.8)startFrenzy();
+    }
+    return;
+  }
   const failed=UI.screen==='fail';
   if(!webAuto.enabled||rewardedVideo.pending||(!failed&&(UI.screen!=='result'||!G.res?.paid)))return;
   webAuto.resultTime+=Math.min(dt,.1);
@@ -6904,7 +6977,7 @@ function renderSettings() {
   const seg=(act,options,cur)=>'<div class="segs">'+options.map(([v,label])=>'<button data-act="'+act+'" data-v="'+v+'" aria-pressed="'+(String(cur)===v)+'" class="'+(String(cur)===v?'on':'')+'">'+label+'</button>').join('')+'</div>';
   $('#scr-settings').innerHTML='<div class="topbar">'+navButton('settingsBack','back','back')+'<div class="ttl">'+tr('settings')+'</div><div class="spacer"></div></div><div class="scroll settings-scroll"><section class="sheet settings-sheet">'+
     toggle('sfx','speaker',tr('sfxShort'),o.sfx)+toggle('music','music',tr('musicShort'),o.music)+toggle('vib','vibration',tr('vibShort'),o.vib)+
-    toggle('randomOutcome','retry',LANG==='zh'?'随机成败（自动玩）':'Random outcomes (autoplay)',o.randomOutcome===true)+
+    toggle('randomOutcome','retry',LANG==='zh'?'随机成败（正式模式）':'Random outcomes (classic autoplay)',o.randomOutcome===true)+
     toggle('webAuto','play',LANG==='zh'?'自动玩':'Autoplay',webAuto.enabled)+
     '<div class="setrow"><span class="setting-label">'+iconLabel('lang',tr('language'))+'</span>'+seg('setlang',[['zh','中文'],['en','English']],LANG)+'</div>'+
     '<div class="setrow"><span class="setting-label">'+iconLabel('quality',tr('quality'))+'</span>'+seg('setq',[['0',tr('q0')],['1',tr('q1')],['2',tr('q2')]],o.q)+'</div>'+
@@ -6927,7 +7000,7 @@ function showScreen(name,weaponIndex,achievementId) {
   if(name==='daily-challenge' && UI.screen!==name)UI.dailyReturn=UI.screen==='daily-result'?'daily-result':'home';
   UI.screen = name; UI.view++;
   for (const id of SCREENS) {
-    const layer=$('#scr-'+id),underlay=name==='daily-challenge'&&id===UI.dailyReturn;
+    const layer=$('#scr-'+id),underlay=(name==='daily-challenge'&&id===UI.dailyReturn)||(name==='auto-mode'&&id==='settings');
     layer.classList.toggle('hidden',id!==name&&!underlay);
     layer.inert=underlay;
   }
@@ -6955,6 +7028,7 @@ function showScreen(name,weaponIndex,achievementId) {
   if(name==='wheel')renderWheel();
   if(name==='trial-pin')renderTrialPin();
   if(name==='trial-settings')renderTrialSettings();
+  if(name==='auto-mode')renderAutoMode();
   if (name === 'settings') renderSettings();
   if (name === 'supplies') { UI.supplySpecial=true; UI.supplyIndex=0; renderSupplies(); $('.supply-scroll').scrollTop=0; }
   if (name === 'pause') renderPause();
@@ -7142,10 +7216,14 @@ function act(a, d = {}) {
     case 'webAuto':
       if(UI.screen!=='settings')break;
       if(webAuto.enabled){clearWebAuto();renderSettings();}
-      else{
-        webAuto.enabled=true;
-        startLevel(UI.settingsReturn==='pause'&&!G.endless&&!G.frenzy&&!G.dailyChallenge?UI.cur:0);
-      }
+      else showScreen('auto-mode');
+      break;
+    case 'cancelAuto': if(UI.screen==='auto-mode')showScreen('settings');break;
+    case 'autoCourse': case 'autoFrenzy':
+      if(UI.screen!=='auto-mode')break;
+      webAuto.enabled=true;webAuto.mode=a==='autoFrenzy'?'frenzy':'course';
+      if(webAuto.mode==='frenzy')startFrenzy();
+      else startLevel(UI.settingsReturn==='pause'&&!G.endless&&!G.frenzy&&!G.dailyChallenge?UI.cur:0);
       break;
     case 'sfx': AUD.on = SAVE.opts.sfx = !SAVE.opts.sfx; audApply(); saveWrite(); renderSettings(); sfx('ui'); break;
     case 'music': AUD.music = SAVE.opts.music = !SAVE.opts.music; audApply(); saveWrite(); renderSettings(); break;
@@ -7432,7 +7510,7 @@ function leavePlayWindow(){
 }
 function backgroundPlayTick(){
   if(!webAuto.enabled||MAIN.dead||MAIN.graphicsLost||
-      !['play','result','fail'].includes(UI.screen)){stopBackgroundPlay();return;}
+      !['play','result','fail','frenzy-result'].includes(UI.screen)){stopBackgroundPlay();return;}
   const now=performance.now();
   if(!document.hidden&&now-MAIN.last<100)return; // Visible windows normally keep their own animation frames.
   // Hidden timers may be batched many seconds apart. Feed the same physics and
@@ -7571,7 +7649,7 @@ function bindInput() {
     if (k === 'p' || k === 'P') { if (scr === 'play') shortcut('pause'); else if (scr === 'pause') shortcut('resume'); return; }
     if (k === 'Escape') {
       if (scr === 'play') shortcut('pause'); else if (scr === 'pause') shortcut('resume'); else if(scr==='powers')shortcut('powerBack');
-      else if (scr === 'shop') shortcut('shopBack'); else if(scr==='settings')shortcut('settingsBack');
+      else if (scr === 'shop') shortcut('shopBack'); else if(scr==='settings')shortcut('settingsBack');else if(scr==='auto-mode')shortcut('cancelAuto');
       else if(scr==='daily-challenge')shortcut('cancelDaily');
       else if(scr==='fail'&&G.endless)shortcut('cashOutEndless');
       else if((scr==='achievements'&&UI.achievementReturn==='shop')||(scr==='wheel'&&UI.wheelReturn==='shop'))shortcut('backToPrize');

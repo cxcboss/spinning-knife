@@ -8,7 +8,7 @@ function game(storage=new Map()){
   return vm.runInNewContext(code+`
     GFX.batch=()=>({addMesh(){},clear(){},flat(){},dispose(){}});
     ({Game,G,FX,SAVE,SAVE_KEY,saveLoad,calendarDay,settleFrenzy,frenzyFullLeft,
-      spawnFrenzyWave,makeFrenzyTarget,frenzyValuable,frenzyPower,PHYS})
+      webAuto,webFrenzyBonus,webPrizeBurst,spawnFrenzyWave,makeFrenzyTarget,frenzyValuable,frenzyPower,PHYS})
   `,{URLSearchParams,localStorage:{getItem:k=>storage.get(k),setItem:(k,v)=>storage.set(k,v)}});
 }
 
@@ -116,4 +116,18 @@ test('旧存档继承，前三次全额、第四次三成、跨日恢复，重�
   assert.equal(b.SAVE.frenzy.bestCombo,12);assert.equal(b.SAVE.frenzy.bestScore,600);assert.equal(b.frenzyFullLeft(day+1),3);
   assert.equal(b.settleFrenzy(round(0,0),day+1).earned,20);
   assert.equal(b.settleFrenzy(round(20000,400),day+1).earned,280);
+});
+
+test('狂潮自动玩通过实际点击切物并结算，额外道具与奖励提示生效',()=>{
+  const a=game(),f=a.Game.startFrenzy(128);
+  Object.assign(f,{bonusTime:0,nextBonusPower:0,bonusPower:'freeze'});
+  a.webFrenzyBonus(f,.1);
+  assert.equal(f.targets.at(-1).kind,'freeze');
+  a.webPrizeBurst(f,'freeze',{x:0,y:3},1);
+  assert.ok(a.FX.pops.some(p=>p.text==='冰冻缓时'));
+  assert.ok(a.FX.parts.some(p=>p.k===1));
+  a.webAuto.enabled=true;a.webAuto.mode='frenzy';
+  for(let i=0;i<4500&&!f.result;i++)a.Game.update(1/60);
+  assert.ok(f.tapped&&f.result&&f.slices>5&&f.result.score>0);
+  assert.equal(a.SAVE.frenzy.runsToday,1);
 });
