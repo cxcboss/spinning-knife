@@ -5234,7 +5234,7 @@ const Game = { start: gStart, startFrenzy:gStartFrenzy, tapFrenzy:gFrenzyTap, up
 const AUD = { ctx: null, master: null, sfxG: null, musG: null, noise: null, on: true, music: true, wheelDucking:false, mTimer: 0, mStep: 0, mNext: 0, world: 0, last: {} };
 
 function audInit() {
-  if (AUD.ctx) { audResume(); return; }
+  if (AUD.ctx) { if(!document.hidden)audResume(); return; }
   try {
     const C = window.AudioContext || window.webkitAudioContext; if (!C) return;
     const c = AUD.ctx = new C();
@@ -6771,6 +6771,7 @@ function showFail(){
 // Browser host only. WeChat has its own settings, input loop and course navigation.
 const webAuto={enabled:false,inputs:null,search:null,resultTime:0};
 function clearWebAuto(){
+  stopBackgroundPlay();
   webAuto.enabled=false;webAuto.inputs=null;webAuto.search=null;webAuto.resultTime=0;
 }
 
@@ -7419,6 +7420,39 @@ function showFatal(msg) {
 function autoPause() {
   if (UI.screen === 'play' && (G.mode === 'play'||G.mode==='frenzy')) { Game.pause(); showScreen('pause'); $('#hud').classList.remove('hidden'); }
 }
+let backgroundPlayTimer=null;
+function stopBackgroundPlay(){
+  clearInterval(backgroundPlayTimer);
+  backgroundPlayTimer=null;
+}
+function leavePlayWindow(){
+  if(!webAuto.enabled){autoPause();return;}
+  if(backgroundPlayTimer!==null)return;
+  backgroundPlayTimer=setInterval(backgroundPlayTick,Math.max(4,Math.round(MAIN.refreshMs)));
+}
+function backgroundPlayTick(){
+  if(!webAuto.enabled||MAIN.dead||MAIN.graphicsLost||
+      !['play','result','fail'].includes(UI.screen)){stopBackgroundPlay();return;}
+  const now=performance.now();
+  if(!document.hidden&&now-MAIN.last<100)return; // Visible windows normally keep their own animation frames.
+  // Hidden timers may be batched many seconds apart. Feed the same physics and
+  // settlement in small steps, and yield the main thread between catch-up batches.
+  const deadline=now+24;
+  MAIN.last=Math.max(MAIN.last,now-65000);
+  try{
+    while(MAIN.last<now&&performance.now()<deadline&&webAuto.enabled){
+      const ms=Math.min(1000/30,now-MAIN.last);
+      if(UI.screen==='play'){
+        if(!webCourseReady())continue;
+        Game.update(ms/1000);
+      }
+      advanceWebCourse(ms/1000);
+      MAIN.last+=ms;
+    }
+    drawWebScene();
+    uiFrame();
+  }catch(e){onFrameError(e);}
+}
 function kickMusic() { if (AUD.ctx && !AUD.mTimer) musicStart(G.L ? G.L.world : 0); }
 
 /* ---------------- input ---------------- */
@@ -7550,11 +7584,17 @@ function bindInput() {
   });
 
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden) { autoPause(); try { if (AUD.ctx) AUD.ctx.suspend(); } catch (e) { /* ignore */ } }
-    else { audResume(); MAIN.last = performance.now(); }
+    if (document.hidden) { leavePlayWindow(); try { if (AUD.ctx) AUD.ctx.suspend(); } catch (e) { /* ignore */ } }
+    else { stopBackgroundPlay(); audResume(); MAIN.last = performance.now(); if(!document.hasFocus())leavePlayWindow(); }
   });
-  window.addEventListener('blur', autoPause);
-  window.addEventListener('pagehide', autoPause);
+  window.addEventListener('blur', leavePlayWindow);
+  window.addEventListener('focus',()=>{if(!document.hidden)stopBackgroundPlay();});
+  window.addEventListener('pagehide',()=>{stopBackgroundPlay();autoPause();});
+  document.addEventListener('freeze',stopBackgroundPlay);
+  document.addEventListener('resume',()=>{
+    MAIN.last=performance.now();
+    if(document.hidden||!document.hasFocus())leavePlayWindow();
+  });
   window.addEventListener('storage',e=>{
     if(e.key===ENDLESS_QUOTA_KEY||e.key===null){endlessQuotaCache=null;refreshEndlessEntry();}
     if(e.key===SAVE_KEY&&e.newValue){
@@ -7637,9 +7677,17 @@ function adaptQuality(dt) {
   if(MAIN.fastN>=10){scale=Math.min(1,scale+.06);MAIN.fastN=0;}
   if(scale!==MAIN.qScale){MAIN.qScale=scale;layout();}
 }
+function drawWebScene(){
+  if(G.L!==MAIN.lastL){MAIN.lastL=G.L;applyTheme();}
+  const frozen=UI.screen!=='home'&&UI.screen!=='play';
+  if(!frozen||MAIN.frozenView!==UI.view){
+    Game.draw();fxOverlay(MAIN.fctx, UI.w, UI.h);MAIN.clearedFx=false;
+  }
+  MAIN.frozenView=frozen?UI.view:-1;
+}
 function frame(now) {
   requestAnimationFrame(frame);
-  if (MAIN.dead || MAIN.graphicsLost || document.hidden) return;
+  if (MAIN.dead || MAIN.graphicsLost || document.hidden || now<=MAIN.last) return;
   let dt = (now - MAIN.last) / 1000; MAIN.last = now;
   observeRefresh(dt);
   if (!(dt > 0) || (dt > 0.25&&G.mode!=='frenzy')) dt = MAIN.refreshMs/1000;
@@ -7649,14 +7697,9 @@ function frame(now) {
       if(!UI.shopGrid)shopDraw(dt);
       if (!MAIN.clearedFx) { MAIN.fctx.clearRect(0, 0, UI.w, UI.h); MAIN.clearedFx = true; }
     } else {
-      if (G.L !== MAIN.lastL) { MAIN.lastL = G.L; applyTheme(); }
       if((UI.screen==='home'||UI.screen==='play') && (UI.screen!=='play'||webCourseReady()))Game.update(dt);
       advanceWebCourse(dt);
-      const frozen=UI.screen!=='home'&&UI.screen!=='play';
-      if(!frozen||MAIN.frozenView!==UI.view){
-        Game.draw();fxOverlay(MAIN.fctx, UI.w, UI.h);MAIN.clearedFx=false;
-      }
-      MAIN.frozenView=frozen?UI.view:-1;
+      drawWebScene();
     }
     uiFrame();
   } catch (e) { onFrameError(e); }

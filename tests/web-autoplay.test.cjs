@@ -121,3 +121,26 @@ test('网页识别不同刷新周期，物理步之间的刀位只用于绘制',
   knife.mode='stuck';
   assert.equal(game.webKnifePose(knife,step*.5),knife);
 });
+
+test('后台定时器按经过时间推进，前台绘制时不会重复推进，手动失焦仍暂停',()=>{
+  let elapsed=0,updates=0,draws=0,pauses=0;
+  const clock={now:()=>1200},doc={hidden:true};
+  const game=new Function('performance','document','update','draw','pause',source+`
+    Game.update=update;drawWebScene=draw;uiFrame=()=>{};autoPause=pause;
+    return {MAIN,UI,webAuto,leavePlayWindow,backgroundPlayTick,stopBackgroundPlay};
+  `)(clock,doc,dt=>{assert.ok(dt<=.05);elapsed+=dt;updates++;},()=>draws++,()=>pauses++);
+  game.UI.screen='play';game.MAIN.last=200;
+  game.leavePlayWindow();
+  assert.equal(pauses,1);
+  game.webAuto.enabled=true;
+  game.leavePlayWindow();
+  try{
+    game.backgroundPlayTick();
+    assert.ok(Math.abs(elapsed-1)<1e-8&&updates>=30);
+    assert.equal(draws,1);
+    doc.hidden=false;clock.now=()=>1210;
+    game.backgroundPlayTick();
+    assert.equal(draws,1);
+    assert.equal(pauses,1);
+  }finally{game.stopBackgroundPlay();}
+});
