@@ -9,7 +9,7 @@ function section(start, end) {
   const a = source.indexOf(start);
   const b = source.indexOf(end, a + start.length);
   if (a < 0 || b < 0) throw new Error('Missing shared game section: ' + start);
-  return source.slice(a, b).trimEnd();
+  return source.slice(a, b).replace(/^.*\/\/ @web-only-begin\n[\s\S]*?^.*\/\/ @web-only-end\n/gm, '').trimEnd();
 }
 const core = [
   section('/* ==== 00_util.js', '/* ---------------- atlas painting'),
