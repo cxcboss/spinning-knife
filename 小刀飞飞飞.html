@@ -6802,6 +6802,40 @@ function* courseInputs(knife,world){
   }
   return null;
 }
+// Replay the winning taps to find takeoffs where a missed or mistimed boost really fails.
+function* webRoundInputs(knife,world,randomOutcome,random=Math.random){
+  const route=yield* courseInputs(knife,world);
+  if(!route||!randomOutcome||random()<.78)return route;
+  const taps=new Set(route), launches=[];
+  const replay=cloneKnife(knife);
+  for(let tick=Math.round(replay.t/PHYS.DT);tick<=route.at(-1);tick++){
+    if(taps.has(tick)&&replay.mode==='stuck')launches.push({tick,knife:cloneKnife(replay)});
+    stepKnife(replay,PHYS.DT,world,taps.has(tick));
+    if(tick%120===0)yield;
+  }
+  const first=Math.floor(random()*launches.length);
+  for(let i=0;i<launches.length;i++){
+    const launch=launches[(first+i)%launches.length];
+    const boosts=[null,8,20,40,65,95];
+    const offset=Math.floor(random()*boosts.length);
+    for(let j=0;j<boosts.length;j++){
+      yield;
+      const boost=boosts[(offset+j)%boosts.length];
+      const trial=cloneKnife(launch.knife);
+      stepKnife(trial,PHYS.DT,world,true);
+      for(let t=0;trial.mode==='air'||trial.mode==='slip';t++){
+        stepKnife(trial,PHYS.DT,world,t===boost);
+      }
+      if(trial.mode==='dead'){
+        const inputs=route.filter(t=>t<launch.tick);
+        inputs.push(launch.tick);
+        if(boost!==null)inputs.push(launch.tick+1+boost);
+        return inputs;
+      }
+    }
+  }
+  return route;
+}
 function planWebCourse(){
   let world=G.W;
   // The animated bands exchange rewards before the final impact.
@@ -6811,7 +6845,7 @@ function planWebCourse(){
     world={...world,tower:{...world.tower,blocks}};
   }
   webAuto.inputs=null;webAuto.resultTime=0;
-  webAuto.search=courseInputs(cloneKnife(G.K),world);
+  webAuto.search=webRoundInputs(cloneKnife(G.K),world,SAVE.opts.randomOutcome===true);
 }
 function webCourseReady(){
   if(!webAuto.search)return true;
@@ -6829,9 +6863,13 @@ function webCourseReady(){
   return false;
 }
 function advanceWebCourse(dt){
-  if(!webAuto.enabled||UI.screen!=='result'||!G.res?.paid)return;
+  const failed=UI.screen==='fail';
+  if(!webAuto.enabled||rewardedVideo.pending||(!failed&&(UI.screen!=='result'||!G.res?.paid)))return;
   webAuto.resultTime+=Math.min(dt,.1);
-  if(webAuto.resultTime>=1.3)startLevel((G.res.idx+1)%NUM_LEVELS);
+  if(webAuto.resultTime>=1.3){
+    if(failed)startLevel(UI.cur,'retry');
+    else startLevel((G.res.idx+1)%NUM_LEVELS);
+  }
 }
 
 function renderSettings() {
@@ -6840,6 +6878,7 @@ function renderSettings() {
   const seg=(act,options,cur)=>'<div class="segs">'+options.map(([v,label])=>'<button data-act="'+act+'" data-v="'+v+'" aria-pressed="'+(String(cur)===v)+'" class="'+(String(cur)===v?'on':'')+'">'+label+'</button>').join('')+'</div>';
   $('#scr-settings').innerHTML='<div class="topbar">'+navButton('settingsBack','back','back')+'<div class="ttl">'+tr('settings')+'</div><div class="spacer"></div></div><div class="scroll settings-scroll"><section class="sheet settings-sheet">'+
     toggle('sfx','speaker',tr('sfxShort'),o.sfx)+toggle('music','music',tr('musicShort'),o.music)+toggle('vib','vibration',tr('vibShort'),o.vib)+
+    toggle('randomOutcome','retry',LANG==='zh'?'随机成败（自动玩）':'Random outcomes (autoplay)',o.randomOutcome===true)+
     toggle('webAuto','play',LANG==='zh'?'自动玩':'Autoplay',webAuto.enabled)+
     '<div class="setrow"><span class="setting-label">'+iconLabel('lang',tr('language'))+'</span>'+seg('setlang',[['zh','中文'],['en','English']],LANG)+'</div>'+
     '<div class="setrow"><span class="setting-label">'+iconLabel('quality',tr('quality'))+'</span>'+seg('setq',[['0',tr('q0')],['1',tr('q1')],['2',tr('q2')]],o.q)+'</div>'+
@@ -7072,6 +7111,8 @@ function act(a, d = {}) {
     case 'resume': sfx('ui'); Game.resume(); showScreen('play'); break;
     case 'restart': case 'retry': if(G.frenzy)return startFrenzy();if(!G.endless&&!G.dailyChallenge){sfx('ui');startLevel(UI.cur,'retry');}break;
     case 'next': sfx('ui'); startLevel(UI.cur + 1,'next'); break;
+    case 'randomOutcome':
+      SAVE.opts.randomOutcome=!SAVE.opts.randomOutcome;saveWrite();renderSettings();break;
     case 'webAuto':
       if(UI.screen!=='settings')break;
       if(webAuto.enabled){clearWebAuto();renderSettings();}

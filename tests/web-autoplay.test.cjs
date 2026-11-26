@@ -47,3 +47,32 @@ test('微信发布目录不包含网页自动玩的开关、路线规划或切�
   }
   check(path.join(root,'wechat'));
 });
+
+test('随机成败按每局的抽签选择实际输入，失误后重试当前关',()=>{
+  const game=new Function(source+`
+    const starts=[];
+    startLevel=(level,entry)=>starts.push([level,entry]);
+    return {genLevel,newKnife,stepKnife,webRoundInputs,advanceWebCourse,webAuto,UI,PHYS,starts,NUM_LEVELS};
+  `)();
+  function outcome(level,enabled,draw){
+    const world=game.genLevel(level).W;
+    const knife=game.newKnife(world,0,world.pl[0].land);
+    const search=game.webRoundInputs(knife,world,enabled,draw);
+    let part;
+    do{part=search.next();}while(!part.done);
+    const taps=new Set(part.value);
+    for(let tick=0;tick<18000&&knife.mode!=='done'&&knife.mode!=='dead';tick++){
+      game.stepKnife(knife,game.PHYS.DT,world,taps.has(tick));
+    }
+    return knife.mode;
+  }
+  assert.equal(outcome(0,false,()=>assert.fail('关闭时不应抽签')),'done');
+  assert.equal(outcome(0,true,()=>.77999),'done');
+  for(let level=0;level<game.NUM_LEVELS;level++){
+    assert.equal(outcome(level,true,()=>.78),'dead','第 '+(level+1)+' 关应能通过真实失误失败');
+  }
+  game.webAuto.enabled=true;
+  game.UI.screen='fail';game.UI.cur=7;
+  for(let i=0;i<13;i++)game.advanceWebCourse(.1);
+  assert.deepEqual(game.starts,[[7,'retry']]);
+});
