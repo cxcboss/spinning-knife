@@ -4,16 +4,16 @@ const fs = require('node:fs');
 const path = require('node:path');
 const {spawnSync} = require('node:child_process');
 const {chromium} = require('playwright');
-const root = path.resolve(__dirname, '..');
-const dir = path.join(root, 'wechat/assets');
+const root = path.resolve(__dirname, '..', '..');
+const dir = path.join(root, 'wechat/game/assets');
 const rate = 22050;
 async function main() {
   const browser = await chromium.launch({channel:'chrome', headless:true});
   try {
     const page = await browser.newPage();
-    await page.goto('file://' + path.join(root, '小刀飞飞飞.html'));
+    await page.goto('file://' + path.join(root, 'web/index.html'));
     const art = await page.evaluate(() => {
-      const icons = Object.keys(ICON_PATHS).filter(k=>k!=='ad'), cols=8, cell=48;
+      const icons = Object.keys(ICON_PATHS), cols=8, cell=48;
       const iconSheet=document.createElement('canvas');
       iconSheet.width=cols*cell;iconSheet.height=Math.ceil(icons.length/cols)*cell*2;
       const ctx=iconSheet.getContext('2d');
@@ -31,8 +31,10 @@ async function main() {
       const g=sheet.getContext('2d');[...box.children].forEach((cv,i)=>g.drawImage(cv,i%6*148,Math.floor(i/6)*92));
       return {atlas:paintAtlas().toDataURL(),icons:iconSheet.toDataURL(),models:sheet.toDataURL(),index:{icons,models:ids}};
     });
-    for(const key of ['atlas','icons','models']) fs.writeFileSync(path.join(dir,key+'.png'),Buffer.from(art[key].split(',')[1],'base64'));
+    const cardsOnly=process.argv.includes('--cards-only');
+    for(const key of cardsOnly?['icons','models']:['atlas','icons','models']) fs.writeFileSync(path.join(dir,key+'.png'),Buffer.from(art[key].split(',')[1],'base64'));
     fs.writeFileSync(path.join(dir,'art.js'),'module.exports = '+JSON.stringify(art.index)+';\n');
+    if(cardsOnly)return;
     const names=await page.evaluate(()=>[
       ...['airtap','coin','pop','perfect','bonk','frenzyBomb','fail','respawn','checkpoint','star','wheelStart','wheelTick','wheelLock','wheelCoins','prizeReveal','ui','back','buy','no'],
       ...Object.keys(FINISH_SHOWS).map(k=>'finish-'+k),

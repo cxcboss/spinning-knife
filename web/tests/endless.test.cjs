@@ -1,19 +1,19 @@
 const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');
-const html=fs.readFileSync(path.join(__dirname,'..','小刀飞飞飞.html'),'utf8');
+const html=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
 const code=html.split('<script>')[1].split('\ntry { boot();')[0];
 
 function game(storage=new Map(),navigator={}){
   const nodes=new Map(),resources={live:0};
   const node=key=>{
-    if(!nodes.has(key))nodes.set(key,{textContent:'',dataset:{},style:{setProperty(){}},classList:{add(){},remove(){},toggle(){}},querySelector(){}});
+    if(!nodes.has(key))nodes.set(key,{textContent:'',children:[],dataset:{},style:{setProperty(){}},classList:{add(){},remove(){},toggle(){}},querySelector(){}});
     return nodes.get(key);
   };
   const api=vm.runInNewContext(code+`
     GFX.batch=()=>{resources.live++;return {addMesh(){},flat(){},clear(){},dispose(){resources.live--;}}};
     UI.stage=$('#stage');Game.onFail=showFail;Game.onFinish=showResult;
-    ({ G,UI,SC,Game,rewardedVideo,SAVE,SAVE_KEY,PHYS,ENDLESS_QUOTA_KEY,canRevive,spendCoins,saveLoad,saveWrite,startEndless,act,
+    ({ G,UI,SC,Game,SAVE,SAVE_KEY,PHYS,ENDLESS_QUOTA_KEY,canRevive,spendCoins,saveLoad,saveWrite,startEndless,act,
       endlessRemaining,endlessQuota,issueDuel,openDuel,startDuel,completeDuel,duelQuery,newEndlessLevel,extendEndlessLevel,trimEndlessLevel,
       planHop,simHop,newKnife,padAt,useRevive,gFinishResult,knifeFell,gEvents,streamEndless })
   `,{resources,navigator,URLSearchParams,location:{search:''},document:{querySelector:node,documentElement:{style:{setProperty(){}}}},requestAnimationFrame(){},setTimeout(){},
@@ -79,28 +79,24 @@ test('挑战码按本地日期过期，兼容旧开局记录且不会为其他�
   assert.equal(a.endlessRemaining(a.endlessQuota(day+1)),3);
 });
 
-test('两种复活都能先用或后用，无尽结束只结算一次且续命不扣次数',async()=>{
-  for(const first of ['item','ad']){
-    const a=game(),second=first==='ad'?'item':'ad';
-    a.rewardedVideo.provider={available:p=>p==='revive',show:async()=>true};
-    a.SAVE.stock.revival=2;
-    a.UI.screen='endless';assert(await a.startEndless());
-    lose(a,12);
-    assert.equal(a.SAVE.coins,0);
-    assert(await a.useRevive(first));
-    assert.equal(a.G.coins,12);
-    assert.equal(a.endlessRemaining(),2);
-    assert(!await a.useRevive(second));
-    lose(a,9);assert(!a.canRevive(first));assert(a.canRevive(second));
-    assert(await a.useRevive(second));
-    lose(a,5);
-    assert.equal(a.SAVE.stock.revival,1);
-    assert.equal(a.UI.screen,'endless-result');
-    assert.equal(a.SAVE.coins,26);
-    assert.equal(await a.act('cashOutEndless'),false);
-    const restored=game(a.storage);restored.saveLoad();
-    assert.equal(restored.SAVE.coins,26);
-  }
+test('无尽只使用库存药水，结束只结算一次且复活不扣开局次数',async()=>{
+  const a=game();
+  a.SAVE.stock.revival=2;
+  a.UI.screen='endless';assert(await a.startEndless());
+  lose(a,12);
+  assert.equal(a.SAVE.coins,0);
+  assert(a.useRevive());
+  assert.equal(a.G.coins,12);
+  assert.equal(a.endlessRemaining(),2);
+  assert.equal(a.useRevive(),false);
+  lose(a,9);
+  assert(!a.canRevive());assert(!a.useRevive());
+  assert.equal(a.SAVE.stock.revival,1);
+  assert.equal(a.UI.screen,'endless-result');
+  assert.equal(a.SAVE.coins,21);
+  assert.equal(await a.act('cashOutEndless'),false);
+  const restored=game(a.storage);restored.saveLoad();
+  assert.equal(restored.SAVE.coins,21);
 });
 
 test('失败待结算时刷新，收入补发一次。旧版余额和已购装备继承',async()=>{
@@ -158,16 +154,14 @@ test('无尽赛道随机变化，连续走到第八十柱后仍然只保留周�
   assert(a.resources.live<buffers);
 });
 
-test('库存复活药水和广告复活也能在关卡模式中各用一次',async()=>{
+test('普通关每局只能使用一瓶药水，失败界面不需要任何观看入口',()=>{
   const a=game();
-  a.rewardedVideo.provider={available:p=>p==='revive',show:async()=>true};
-  a.Game.start(0);a.SAVE.stock.revival=1;
+  a.Game.start(0);a.SAVE.stock.revival=2;
   lose(a);
-  assert(await a.useRevive('item'));
-  lose(a);
-  assert(await a.useRevive('ad'));
+  assert(a.useRevive());
   lose(a);
   assert.equal(a.UI.screen,'fail');
-  assert(!a.canRevive('ad'));assert(!a.canRevive('item'));
-  assert.equal(a.SAVE.stock.revival,0);
+  assert(!a.canRevive());
+  assert.equal(a.SAVE.stock.revival,1);
+  assert.doesNotMatch(a.node('#scr-fail').innerHTML,/data-act="(?:revive|double)"|看视频|Watch video/);
 });

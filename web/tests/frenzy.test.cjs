@@ -1,7 +1,7 @@
 const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');
-const html=fs.readFileSync(path.join(__dirname,'..','小刀飞飞飞.html'),'utf8');
+const html=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
 const code=html.split('<script>')[1].split('\ntry { boot();')[0];
 
 function game(storage=new Map()){
@@ -20,7 +20,7 @@ test('四种装备都能在屋顶完成整局，暂停、变身、托底和经�
     assert(a.Game.tapFrenzy(1,.4));assert(K.vx>0);assert(!a.Game.tapFrenzy(0,.5));
     a.Game.update(.2);assert(a.Game.tapFrenzy(0,.5));assert(K.vx<0);
     a.Game.update(.2);
-    assert.equal(K.spread,blade==='thousand'||blade==='azure-dragon'?1:0);
+    assert.equal(K.spread,0);
     const left=f.timeLeft;
     a.Game.pause();a.Game.update(2);assert.equal(f.timeLeft,left);a.Game.resume();
     for(let i=0;i<12;i++)a.Game.update(.1);
@@ -97,25 +97,42 @@ test('波次按阶段提速，炸弹避让同波的贵重目标和功能球，�
   assert.equal(f.targets.filter(t=>t.kind==='bomb').length,2);
 });
 
-test('旧存档继承，前三次全额、第四次三成、跨日恢复，重复结算和刷新不会多发',()=>{
+test('网页狂潮保留旧存档，按得分结算，额外局限额且跨日恢复',()=>{
   const store=new Map(),a=game(store),day=a.calendarDay();
   store.set(a.SAVE_KEY,JSON.stringify({coins:800,unlocked:8,owned:['chef','carrot'],knife:'carrot'}));a.saveLoad();
   assert.equal(a.frenzyFullLeft(),3);
   function round(score=600,coins=80){return {score,coins,maxCombo:12,slices:14,fruit:5};}
   for(let i=0;i<4;i++){
     const f=round(),r=a.settleFrenzy(f,day);
-    assert.equal(r.earned,i===3?30:100);
+    assert.equal(r.earned,i===3?12:30);
     assert.equal(r.newBest,i===0);assert.equal(r.full,i<3);
     assert.strictEqual(a.settleFrenzy(f,day),r);
   }
   assert.equal(a.frenzyFullLeft(),0);
-  assert.equal(a.settleFrenzy(round(0,0),day).earned,10);
+  assert.equal(a.settleFrenzy(round(0,0),day).earned,0);
   const b=game(store);b.saveLoad();
-  assert.equal(b.SAVE.coins,1140);assert.equal(b.SAVE.knife,'carrot');assert.equal(b.SAVE.unlocked,8);
+  assert.equal(b.SAVE.coins,902);assert.equal(b.SAVE.knife,'carrot');assert.equal(b.SAVE.unlocked,8);
   assert.equal(b.SAVE.frenzy.totalSlices,70);assert.equal(b.SAVE.progression.cuts,70);assert.equal(b.SAVE.progression.fruit,25);
   assert.equal(b.SAVE.frenzy.bestCombo,12);assert.equal(b.SAVE.frenzy.bestScore,600);assert.equal(b.frenzyFullLeft(day+1),3);
-  assert.equal(b.settleFrenzy(round(0,0),day+1).earned,20);
-  assert.equal(b.settleFrenzy(round(20000,400),day+1).earned,280);
+  assert.equal(b.settleFrenzy(round(20000,400),day).earned,15);
+  assert.equal(b.settleFrenzy(round(20000,400),day).earned,13);
+  assert.equal(b.settleFrenzy(round(20000,400),day).earned,0);
+  assert.equal(b.settleFrenzy(round(0,0),day+1).earned,0);
+  assert.equal(b.settleFrenzy(round(600,400),day+1).earned,30);
+});
+
+test('狂潮同一次起跳可以滑动微调，每局只能增加一次十五秒',()=>{
+  const {Game,G}=game(),round=Game.startFrenzy(17);
+  assert(Game.tapFrenzy(.5,.4));
+  assert(Game.steerFrenzy(.6,-.6));
+  const position=[G.K.x,G.K.y];
+  Game.update(1/60);
+  assert(G.K.x>position[0]&&G.K.y>position[1]);
+  const left=round.timeLeft;
+  assert(Game.addFrenzyTime());
+  assert.equal(round.timeLeft,left+15);
+  assert.equal(Game.addFrenzyTime(),false);
+  assert.equal(round.timeLeft,left+15);
 });
 
 test('狂潮自动玩通过实际点击切物并结算，额外道具与奖励提示生效',()=>{

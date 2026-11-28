@@ -5,11 +5,11 @@ const path = require('node:path');
 const vm = require('node:vm');
 
 // Exercise the shipped single-file game without starting its browser renderer.
-const html = fs.readFileSync(path.join(__dirname, '..', '小刀飞飞飞.html'), 'utf8');
+const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 const source = html.split('<script>')[1].split('\ntry { boot();')[0];
 function scene() {
   const api = vm.runInNewContext(source + `
-    ({ G, SC, FX, PHYS, KNIVES, CUT_TIME, SLICEABLE, hexc, hBox, makePiece, mulberry32,
+    ({ G, SC, FX, PHYS, NUM_LEVELS, KNIVES, CUT_TIME, SLICEABLE, hexc, hBox, makePiece, mulberry32,
        newKnife, stepKnife, fxSliceStep, fxProcessCuts, genLevel, reviveSpot, respawnKnife, placeStuck, formParts, beginPose,
        startSlip, drawImpacts, materialImpact, FINISH_UV, atlUV, MATERIAL_ORDER })`, { URLSearchParams, location: { search: '' } });
   const { G, SC, PHYS } = api;
@@ -165,9 +165,9 @@ test('复活点避开邻柱和尖刺，并留在原柱或附近', () => {
   }
 });
 
-test('30 关最后一跳在不同起点、倾角、补跳时机和三段跳下都落在计分区',()=>{
+test('60 关最后一跳在不同起点、倾角、补跳时机和三段跳下都落在计分区',()=>{
   const {api}=scene(),dt=api.PHYS.DT;
-  for(let level=0;level<30;level++){
+  for(let level=0;level<api.NUM_LEVELS;level++){
     const world=api.genLevel(level).W,last=world.pl.at(-1),tower=world.tower;
     for(const x of [last.x0+.04,last.land,last.x1-.04])
       for(const lean of [-1.5,-.6,0,.6,1.5])

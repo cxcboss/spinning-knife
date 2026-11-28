@@ -30,7 +30,7 @@ module.exports=function createAudio(api=wx){
     let variant=name+':'+(options?.knife||knife)?.id;
     if(name==='finish')variant='finish-'+(options?.m||1);
     if(name==='power')variant='power-'+options.id;
-    const cue=cues[variant]||cues[name];if(!cue)return;
+    const cue=cues[variant]||cues[name]||cues[name+':chef'];if(!cue)return;
     const now=Date.now();if(now-(last.get(name)||0)<32)return;last.set(name,now);
     if(bank&&context){
       if(voices.size>=12)return;

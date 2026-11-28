@@ -17,13 +17,14 @@ jobs:
       artifact: ${{ steps.package.outputs.name }}
     steps:
       - uses: actions/checkout@v6
-      - run: node scripts/build-wechat.cjs --check
-      - run: node --test tests/*.test.cjs
+      - run: node wechat/tools/build-wechat.cjs --check
+      - run: node wechat/tools/init-config.cjs
+      - run: node --test web/tests/*.test.cjs wechat/tests/*.test.cjs tests/*.test.cjs
       - uses: actions/configure-pages@v6
       - run: |
           mkdir site
-          sed 's/data-build="release"/data-build="playtest"/' '小刀飞飞飞.html' > site/index.html
-          cp '微信小游戏图标-144-AI版.png' site/icon.png
+          sed 's/data-build="release"/data-build="playtest"/' web/index.html > site/index.html
+          cp web/icon.png site/icon.png
       - id: package
         run: echo "name=github-pages-$GITHUB_RUN_ATTEMPT" >> "$GITHUB_OUTPUT"
       - uses: actions/upload-pages-artifact@v5

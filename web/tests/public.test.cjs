@@ -1,7 +1,7 @@
 const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');
-const html=fs.readFileSync(path.join(__dirname,'..','小刀飞飞飞.html'),'utf8');
+const html=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
 const code=html.split('<script>')[1].split('\ntry { boot();')[0];
 function game(build='release'){
  const nodes=new Map(),store=new Map(),doc={documentElement:{dataset:{build}},querySelector(id){if(!nodes.has(id))nodes.set(id,{textContent:'',classList:{add(){},remove(){}}});return nodes.get(id);}};

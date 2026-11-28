@@ -3,4 +3,17 @@
 .private/
 .wrangler/
 node_modules/
-wechat/project.private.config.json
+
+# WeChat credentials, filings, artwork archives and machine-local configuration.
+.workbuddy/
+/wechat/game/ad-units.js
+/wechat/game/project.private.config.json
+/wechat/materials/*
+!/wechat/materials/README.md
+/wechat/archive/releases/
+/wechat/archive/old-workspace/
+/web/archive/
+/bilibili/dist/
+/bilibili/spinning-knife-bilibili-toy.zip
+*.key
+*.pem
