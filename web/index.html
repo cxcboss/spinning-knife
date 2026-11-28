@@ -5309,7 +5309,7 @@ function cutFrenzyTarget(f,t,source,angle){
   if(kind==='rain'){f.rainLeft=4.5;f.rainTimer=.5;}
   if(frenzyValuable(kind)){fxConfetti(p.x,p.y,7,3.3);G.cam.shake=Math.max(G.cam.shake,.075);}
   // @web-only-begin
-  if(frenzyValuable(kind)||frenzyPower(kind))webPrizeBurst(f,kind,p,coins);
+  if(frenzyValuable(kind)||frenzyPower(kind))webPrizeBurst(f,kind,p,points);
   // @web-only-end
   if(kind==='emoji'||frenzyPower(kind))fxSparks(p.x,p.y,6,kind==='freeze'?FRENZY_ICE:FRENZY_GOLD,3.4,false);
   if(f.elapsed-FX.lastSliceSfx>.045){
@@ -7125,9 +7125,10 @@ function webFrenzyBonus(f,dt){
   }
   f.targets.push(makeFrenzyTarget(kind,x,y,-side*(2+f.rn()*1.6),9+f.rn()*2,f.rn));
 }
-function webPrizeBurst(f,kind,p,coins){
+function webPrizeBurst(f,kind,p,points){
   const power=frenzyPower(kind);
-  const label=kind==='freeze'?tr('frenzyFreeze'):kind==='rain'?tr('frenzyRain'):byLanguage(MATERIALS[kind])+' +'+coins;
+  const label=kind==='freeze'?tr('frenzyFreeze'):kind==='rain'?tr('frenzyRain'):
+    byLanguage(MATERIALS[kind])+' +'+points+(LANG==='zh'?' 分':' pts');
   const color=kind==='freeze'?'#a4f8ff':kind==='rain'?'#d7c3ff':'#ffe884';
   if(!f.reduced)fxConfetti(p.x,p.y,power?18:9,power?4.7:3.9);
   if(power||f.elapsed>=(f.nextPrizeLabel||0)){
